@@ -39,7 +39,7 @@ class MusicService : Service() {
             if (song != null) {
                 mSong = song
                 startMusic(song)
-                sendNotification(song)
+                sendNotificationMedia(song)
             }
         }
         //xử lí action nhận từ broadcast
@@ -74,7 +74,7 @@ class MusicService : Service() {
         if (mediaPlayer != null && mediaPlayer!!.isPlaying) {
             mediaPlayer!!.pause()
             isPlaying = false
-            sendNotification(mSong)
+            sendNotificationMedia(mSong)
             sendActionToActivity(ACTION_PAUSE)
         }
     }
@@ -83,61 +83,81 @@ class MusicService : Service() {
         if (mediaPlayer != null && !isPlaying) {
             mediaPlayer!!.start()
             isPlaying = true
-            sendNotification(mSong)
+            sendNotificationMedia(mSong)
             sendActionToActivity(ACTION_RESUME)
         }
     }
 
-    private fun sendNotification(song: Song) {
-        var intent = Intent(this, MainActivity::class.java)
+//    private fun sendNotification(song: Song) {
+//        var intent = Intent(this, MainActivity::class.java)
+//        var pendingIntent =
+//            PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+//
+//        //custome thông báo
+//        var remoteView = RemoteViews(packageName, R.layout.custom_notification)
+//        remoteView.setTextViewText(R.id.tv_name, song.name)
+//        remoteView.setTextViewText(R.id.tv_single, song.single)
+//        var bitmap = BitmapFactory.decodeResource(resources, song.image)
+//        remoteView.setImageViewBitmap(R.id.img_song, bitmap)
+//        remoteView.setImageViewResource(R.id.btn_play_or_pause, R.drawable.pause)
+//
+//        //xử lí click cho các nút trên thông báo
+//        if (isPlaying) {
+//            remoteView.setOnClickPendingIntent(
+//                R.id.btn_play_or_pause, getPendingIntent(
+//                    this,
+//                    ACTION_PAUSE
+//                )
+//            )
+//            remoteView.setImageViewResource(R.id.btn_play_or_pause, R.drawable.pause)
+//        } else {
+//            remoteView.setOnClickPendingIntent(
+//                R.id.btn_play_or_pause, getPendingIntent(
+//                    this,
+//                    ACTION_RESUME
+//                )
+//            )
+//            remoteView.setImageViewResource(R.id.btn_play_or_pause, R.drawable.play)
+//        }
+//        remoteView.setOnClickPendingIntent(
+//            R.id.btn_close, getPendingIntent(
+//                this,
+//                ACTION_CLEAR
+//            )
+//        )
+//        //Khởi tạo thông báo
+//        var notification = NotificationCompat.Builder(this, CHANNEL_ID)
+//            .setContentIntent(pendingIntent)
+//            .setCustomContentView(remoteView)
+//            .setSmallIcon(R.drawable.music_logo)
+//            .setSound(null)
+//            .build()
+//        startForeground(1, notification)
+//
+//    }
+
+    fun sendNotificationMedia(song: Song) {
+                var intent = Intent(this, MainActivity::class.java)
         var pendingIntent =
             PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
-
-        //custome thông báo
-        var remoteView = RemoteViews(packageName, R.layout.custom_notification)
-        remoteView.setTextViewText(R.id.tv_name, song.name)
-        remoteView.setTextViewText(R.id.tv_single, song.single)
         var bitmap = BitmapFactory.decodeResource(resources, song.image)
-        remoteView.setImageViewBitmap(R.id.img_song, bitmap)
-        remoteView.setImageViewResource(R.id.btn_play_or_pause, R.drawable.pause)
-
-        //xử lí click cho các nút trên thông báo
-        if (isPlaying) {
-            remoteView.setOnClickPendingIntent(
-                R.id.btn_play_or_pause, getPendingIntent(
-                    this,
-                    ACTION_PAUSE
-                )
-            )
-            remoteView.setImageViewResource(R.id.btn_play_or_pause, R.drawable.pause)
-        } else {
-            remoteView.setOnClickPendingIntent(
-                R.id.btn_play_or_pause, getPendingIntent(
-                    this,
-                    ACTION_RESUME
-                )
-            )
-            remoteView.setImageViewResource(R.id.btn_play_or_pause, R.drawable.play)
-        }
-        remoteView.setOnClickPendingIntent(
-            R.id.btn_close, getPendingIntent(
-                this,
-                ACTION_CLEAR
-            )
-        )
-        //Khởi tạo thông báo
+        var mediaSession = MediaSessionCompat(this, "tag")
         var notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentIntent(pendingIntent)
-            .setCustomContentView(remoteView)
+            .addAction(R.drawable.previous, "Previous", null)
+            .addAction(R.drawable.pause, "PlayOrPause", null)
+            .addAction(R.drawable.next, "Next", null)
+            .setStyle(
+                androidx.media.app.NotificationCompat.MediaStyle().setShowActionsInCompactView(0,1,2)
+//                    .setMediaSession(mediaSession.sessionToken)
+            )
             .setSmallIcon(R.drawable.music_logo)
-            .setSound(null)
+            .setLargeIcon(bitmap)
+            .setContentText(song.single)
+            .setContentTitle(song.name)
+            .setContentIntent(pendingIntent)
             .build()
-        startForeground(1, notification)
-
+        startForeground(1,notification)
     }
-
-
-
 
 
     //gửi action sang broadcast khi bấm nút
@@ -159,6 +179,7 @@ class MusicService : Service() {
             mediaPlayer = null
         }
     }
+
     //gửi data qua activity để hiện thị trên UI
     fun sendActionToActivity(action: Int) {
         var intent = Intent(ACTION_SEND_TO_ACTIVITY)
