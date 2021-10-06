@@ -56,7 +56,7 @@
         android:id="@+id/btn_play_or_pause"
         android:layout_centerVertical="true"
         android:padding="10dp"
-        android:src="@drawable/play"
+        android:src="@drawable/pause"
         android:layout_toLeftOf="@id/btn_next"
         android:layout_width="35dp"
         android:layout_height="35dp"/>
