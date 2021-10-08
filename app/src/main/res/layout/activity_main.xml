@@ -5,20 +5,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
-
-    <Button
-        android:id="@+id/btn_start_service"
-        android:text="Play"
-        android:layout_centerInParent="true"
-        android:layout_width="wrap_content"
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rcv_songs"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
-    <Button
-        android:id="@+id/btn_stop_service"
-        android:text="Stop"
-        android:layout_centerInParent="true"
-        android:layout_below="@id/btn_start_service"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+    </androidx.core.widget.NestedScrollView>
     <RelativeLayout
         android:id="@+id/layout_playing"
         android:visibility="visible"
