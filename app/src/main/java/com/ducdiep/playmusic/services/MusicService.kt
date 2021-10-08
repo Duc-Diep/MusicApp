@@ -55,7 +55,9 @@ class MusicService : Service() {
     }
 
     private fun startMusic(song: Song) {
-        mediaPlayer = MediaPlayer()
+        if (mediaPlayer==null){
+            mediaPlayer = MediaPlayer()
+        }
         if (mediaPlayer == null|| mediaPlayer!!.isPlaying) {
             if (mediaPlayer!=null){
                 mediaPlayer!!.stop()

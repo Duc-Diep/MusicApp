@@ -19,6 +19,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ducdiep.playmusic.adapters.SongAdapter
+import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.Song
 import com.ducdiep.playmusic.services.MusicService
@@ -51,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        AppPreferences.init(this)
         bitmapDefault1 = BitmapFactory.decodeResource(resources, R.drawable.mayu)
         bitmapDefault2 = BitmapFactory.decodeResource(resources, R.drawable.tohka)
         LocalBroadcastManager.getInstance(this)
@@ -71,11 +73,32 @@ class MainActivity : AppCompatActivity() {
         btn_close.setOnClickListener {
             sendActionToService(ACTION_CLEAR)
         }
+        btn_next.setOnClickListener {
+            if (AppPreferences.indexPlaying==listSong.size-1){
+                playMusic(listSong[0])
+                AppPreferences.indexPlaying = 0
+            }else{
+                playMusic(listSong[AppPreferences.indexPlaying+1])
+                AppPreferences.indexPlaying = AppPreferences.indexPlaying+1
+            }
+
+        }
+        btn_previous.setOnClickListener {
+            if (AppPreferences.indexPlaying==0){
+                playMusic(listSong[listSong.size-1])
+                AppPreferences.indexPlaying = listSong.size-1
+            }else{
+                playMusic(listSong[AppPreferences.indexPlaying-1])
+                AppPreferences.indexPlaying = AppPreferences.indexPlaying-1
+            }
+
+        }
         loadDefaultMusic()
         requestPermisssion()
         songAdapter = SongAdapter(this,listSong)
         songAdapter.setOnClickItem {
             playMusic(it)
+            AppPreferences.indexPlaying = listSong.indexOf(it)
         }
         rcv_songs.adapter = songAdapter
     }
