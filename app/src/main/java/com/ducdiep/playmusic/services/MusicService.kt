@@ -12,11 +12,13 @@ import android.os.*
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.activities.MainActivity
+import com.ducdiep.playmusic.activities.PlayMusicActivity
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.CHANNEL_ID
 import com.ducdiep.playmusic.broadcasts.MyReceiver
@@ -42,11 +44,6 @@ class MusicService : Service() {
         return binder
     }
 
-    fun getCurrentPos(): Int = mediaPlayer!!.currentPosition
-    fun seekTo(time: Int) {
-        mediaPlayer?.seekTo(time)
-    }
-
     override fun onCreate() {
         AppPreferences.init(this)
         if (listSong == null) {
@@ -61,7 +58,7 @@ class MusicService : Service() {
         mSong = listSong!![AppPreferences.indexPlaying]
         startMusic(AppPreferences.indexPlaying)
         sendNotificationMedia(AppPreferences.indexPlaying)
-        //xử lí action nhận từ broadcast
+        //xử lí action nhận từ broadcast or activity
         var actionMusic = intent.getIntExtra(ACTION_TO_SERVICE, 0)
         handleMusic(actionMusic)
         return START_NOT_STICKY
@@ -111,7 +108,7 @@ class MusicService : Service() {
         }
     }
 
-    private fun playPreviousMusic() {
+    fun playPreviousMusic() {
         if (AppPreferences.indexPlaying == 0) {
             startMusic(listSong!!.size - 1)
             AppPreferences.indexPlaying = listSong!!.size - 1
@@ -123,7 +120,7 @@ class MusicService : Service() {
         sendActionToActivity(ACTION_PREVIOUS)
     }
 
-    private fun playNextMusic() {
+    fun playNextMusic() {
         if (AppPreferences.indexPlaying == listSong!!.size - 1) {
             startMusic(0)
             AppPreferences.indexPlaying = 0
@@ -136,22 +133,18 @@ class MusicService : Service() {
     }
 
 
-    private fun pauseMusic() {
-        if (mediaPlayer != null && mediaPlayer!!.isPlaying) {
+    fun pauseMusic() {
             mediaPlayer!!.pause()
             isPlaying = false
             sendNotificationMedia(AppPreferences.indexPlaying)
             sendActionToActivity(ACTION_PAUSE)
-        }
     }
 
-    private fun resumeMusic() {
-        if (mediaPlayer != null && !isPlaying) {
+    fun resumeMusic() {
             mediaPlayer!!.start()
             isPlaying = true
             sendNotificationMedia(AppPreferences.indexPlaying)
             sendActionToActivity(ACTION_RESUME)
-        }
     }
 
 //    private fun sendNotification(song: Song) {
@@ -206,7 +199,8 @@ class MusicService : Service() {
         mediaSession = MediaSessionCompat(this, "tag")
         var song = listSong!![index]
         //pending intent mở app khi bấm vào notification
-        var intent = Intent(this, MainActivity::class.java)
+        var intent = Intent(this, PlayMusicActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         var pendingIntent =
             PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
 
@@ -214,26 +208,27 @@ class MusicService : Service() {
         val mediaMetaData = MediaMetadataCompat.Builder()
         mediaMetaData.putLong(
             MediaMetadataCompat.METADATA_KEY_DURATION,
-            song.duration.toLong()
+            -1
         )
+        mediaSession.setMetadata(mediaMetaData.build())
+
 
 //        updateState(0)
-        mediaSession.setMetadata(mediaMetaData.build())
 //        mediaSession.setCallback(object : MediaSessionCompat.Callback() {
 //            override fun onSeekTo(pos: Long) {
 //                mediaPlayer!!.seekTo(pos.toInt())
 //                updateState(pos)
 //            }
 //        })
-        mediaSession.isActive = true
+//        mediaSession.isActive = true
 
         var notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
                     .setShowActionsInCompactView(0, 1, 2)
-//                    .setMediaSession(mediaSession.sessionToken)
+                    .setMediaSession(mediaSession.sessionToken)
             )
-            .setSmallIcon(R.drawable.ic_baseline_music_note_24)
+            .setSmallIcon(R.drawable.music_logo)
             .setLargeIcon(song.imageBitmap)
             .setContentText(song.artist)
             .setContentTitle(song.name)
@@ -248,7 +243,7 @@ class MusicService : Service() {
         } else {
             notificationBuilder
                 .addAction(R.drawable.previous, "Previous", getPendingIntent(this, ACTION_PREVIOUS))
-                .addAction(R.drawable.play, "PlayOrPause", getPendingIntent(this, ACTION_RESUME))
+                .addAction(R.drawable.ic_baseline_play_circle_outline_24, "PlayOrPause", getPendingIntent(this, ACTION_RESUME))
                 .addAction(R.drawable.next, "Next", getPendingIntent(this, ACTION_NEXT))
                 .addAction(R.drawable.close, "Close", getPendingIntent(this, ACTION_CLEAR))
         }

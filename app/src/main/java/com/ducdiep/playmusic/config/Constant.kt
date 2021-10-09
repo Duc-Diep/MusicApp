@@ -23,6 +23,7 @@ const val ACTION_START = 4
 const val ACTION_NEXT = 6
 const val ACTION_PREVIOUS = 5
 const val PERMISSION_REQUEST = 7
+const val ACTION_RELOAD = "reload"
 const val SONG_OBJECT = "song"
 const val STATUS_PLAY = "status_play"
 const val ACTION = "action"
@@ -32,7 +33,6 @@ const val PROGRESS = "progress"
 const val ACTION_SEND_TO_ACTIVITY = "action_send_data_to_activity"
 const val ACTION_SERVICE_TO_BROADCAST = "action_service_to_broadcast"
 const val ACTION_TO_SERVICE = "action_broadcast_to_service"
-const val THUMBNAIL_SIZE = 50
 lateinit var bitmapDefault1: Bitmap
 lateinit var bitmapDefault2: Bitmap
 

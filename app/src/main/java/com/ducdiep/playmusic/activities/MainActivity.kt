@@ -35,7 +35,6 @@ class MainActivity : AppCompatActivity() {
             isPlaying = bundle.getBoolean(STATUS_PLAY)
             var action = bundle.getInt(ACTION)
             handleLayoutPlay(action)
-
         }
 
     }
@@ -46,13 +45,15 @@ class MainActivity : AppCompatActivity() {
         AppPreferences.init(this)
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
-//        btn_start_service.setOnClickListener {
-//            playMusic()
-//        }
-//        btn_stop_service.setOnClickListener {
-//            stopMusic()
-//        }
-        Log.d("Indexx", "onCreate: ${AppPreferences.indexPlaying}")
+        listSong = loadDefaultMusic(this)
+        setupAdapter()
+        requestPermisssion()
+        var actionReload = intent.getIntExtra(ACTION_RELOAD,0)
+        isPlaying = intent.getBooleanExtra(STATUS_PLAY,false)
+        if (actionReload==1){
+            handleLayoutPlay(ACTION_START)
+        }
+
         btn_play_or_pause.setOnClickListener {
             if (isPlaying) {
                 sendActionToService(ACTION_PAUSE)
@@ -76,26 +77,24 @@ class MainActivity : AppCompatActivity() {
         }
         layout_title.setOnClickListener{
             var intent = Intent(this,PlayMusicActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            intent.putExtra(STATUS_PLAY,isPlaying)
             startActivity(intent)
         }
-        listSong = loadDefaultMusic(this)
+
+    }
+
+    private fun setupAdapter() {
         songAdapter = SongAdapter(this, listSong)
         songAdapter.setOnClickItem {
             AppPreferences.indexPlaying = it
             playMusic()
             var intent = Intent(this,PlayMusicActivity::class.java)
+            intent.putExtra(STATUS_PLAY,true)
             startActivity(intent)
 
         }
         rcv_songs.adapter = songAdapter
-        requestPermisssion()
-    }
-
-
-
-    private fun stopMusic() {
-        var intent = Intent(this, MusicService::class.java)
-        stopService(intent)
     }
 
     private fun playMusic() {

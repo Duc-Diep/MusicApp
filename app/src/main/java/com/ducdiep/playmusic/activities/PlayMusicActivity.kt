@@ -1,12 +1,16 @@
 package com.ducdiep.playmusic.activities
 
 import android.Manifest
+import android.app.ActivityManager
 import android.content.*
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.view.View
+import android.widget.SeekBar
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -52,6 +56,7 @@ class PlayMusicActivity : AppCompatActivity() {
     lateinit var listSong: ArrayList<Song>
     var isPlaying: Boolean = false
     lateinit var mSong:Song
+    lateinit var activityManager:ActivityManager
     var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             var bundle = intent.extras
@@ -64,15 +69,49 @@ class PlayMusicActivity : AppCompatActivity() {
     }
 
 
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_play_music)
         AppPreferences.init(this)
         supportActionBar?.hide()
+        isPlaying = intent.getBooleanExtra(STATUS_PLAY,false)
+        activityManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
+        btn_back.setOnClickListener {
+            val taskInfo = activityManager.appTasks
+            if (taskInfo[0].taskInfo.numActivities==2){
+                finish()
+            }else{
+                var intent = Intent(this,MainActivity::class.java)
+                intent.putExtra(ACTION_RELOAD,1)
+                intent.putExtra(STATUS_PLAY,isPlaying)
+                startActivity(intent)
+            }
+        }
+
         loadAllMusic()
         showDetailMusic()
+        btn_handle_play_or_pause.setOnClickListener {
+            if (isPlaying) {
+                mService.mediaPlayer?.pause()
+                isPlaying = false
+                setStatusButton()
+            } else {
+                mService.mediaPlayer?.start()
+                isPlaying=true
+                setStatusButton()
+            }
+        }
+
+        btn_handle_next.setOnClickListener {
+            mService.playNextMusic()
+        }
+        btn_handle_previous.setOnClickListener {
+            mService.playPreviousMusic()
+        }
+
     }
 
     fun loadAllMusic() {
@@ -117,10 +156,18 @@ class PlayMusicActivity : AppCompatActivity() {
         tv_artist.text = mSong.artist
     }
 
+    fun sendActionToService(action: Int) {
+        var intent = Intent(this, MusicService::class.java)
+        intent.putExtra(ACTION_TO_SERVICE, action)
+        startService(intent)
+    }
+
+
+    //set up progressbar
     fun setProgress(){
         mSong = listSong[AppPreferences.indexPlaying]
         var duration = mSong.duration.toLong()
-        tv_progress.text = timerConversion(mService.getCurrentPos().toLong())
+        tv_progress.text = timerConversion(mService.mediaPlayer?.currentPosition!!.toLong())
         tv_duration.text = timerConversion(duration)
         seekbar_handle.max = duration.toInt()
         val handler = Handler(mainLooper)
@@ -128,8 +175,8 @@ class PlayMusicActivity : AppCompatActivity() {
         val runnable: Runnable = object : Runnable {
             override fun run() {
                 try {
-                    tv_progress.text = timerConversion(mService.getCurrentPos().toLong())
-                    seekbar_handle.progress = mService.getCurrentPos()
+                    tv_progress.text = timerConversion(mService.mediaPlayer?.currentPosition!!.toLong())
+                    seekbar_handle.progress = mService.mediaPlayer?.currentPosition!!
                     handler.postDelayed(this,1000)
                 } catch (ed: IllegalStateException) {
                     ed.printStackTrace()
@@ -137,6 +184,20 @@ class PlayMusicActivity : AppCompatActivity() {
             }
         }
         handler.postDelayed(runnable, 1000)
+        seekbar_handle.setOnSeekBarChangeListener(object :SeekBar.OnSeekBarChangeListener{
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) {
+
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                mService.mediaPlayer!!.seekTo(seekBar.progress)
+            }
+
+        })
     }
 
     fun timerConversion(value: Long): String {
