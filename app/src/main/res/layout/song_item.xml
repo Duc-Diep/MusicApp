@@ -34,11 +34,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
     </RelativeLayout>
-    <ImageView
+    <ImageButton
         android:id="@+id/btn_play_item"
         android:layout_centerVertical="true"
         android:layout_alignParentRight="true"
-        android:padding="5dp"
+        android:background="@null"
         android:src="@drawable/play"
         android:layout_width="45dp"
         android:layout_height="45dp"/>
