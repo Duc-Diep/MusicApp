@@ -289,14 +289,13 @@ class PlayMusicActivity : AppCompatActivity() {
     override fun onBackPressed() {
         val taskInfo = activityManager.appTasks
         if (taskInfo[0].taskInfo.numActivities == 2) {
-            finish()
+            super.onBackPressed()
         } else {
             var intent = Intent(this, MainActivity::class.java)
             intent.putExtra(ACTION_RELOAD, 1)
             startActivity(intent)
         }
         handler.removeCallbacks(runnable)
-        super.onBackPressed()
     }
 
 }
