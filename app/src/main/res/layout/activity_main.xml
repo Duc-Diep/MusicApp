@@ -5,8 +5,32 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".activities.MainActivity">
+    <RelativeLayout
+        android:id="@+id/layout_search"
+        android:layout_margin="5dp"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp">
+
+        <EditText
+            android:id="@+id/edt_search"
+            android:hint="Tìm kiếm"
+            android:paddingLeft="10dp"
+            android:layout_toLeftOf="@id/btn_mic"
+            android:background="@drawable/layout_search"
+            android:drawableLeft="@drawable/ic_baseline_search_24"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+        <ImageView
+            android:id="@+id/btn_mic"
+            android:src="@drawable/ic_baseline_mic_24"
+            android:layout_alignParentRight="true"
+            android:padding="10dp"
+            android:layout_width="50dp"
+            android:layout_height="50dp"/>
+    </RelativeLayout>
     <androidx.core.widget.NestedScrollView
         android:layout_above="@+id/layout_playing"
+        android:layout_below="@id/layout_search"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
     <androidx.recyclerview.widget.RecyclerView
@@ -18,11 +42,11 @@
     </androidx.core.widget.NestedScrollView>
     <RelativeLayout
         android:id="@+id/layout_playing"
-        android:visibility="gone"
+        android:visibility="visible"
         android:paddingHorizontal="10dp"
         android:layout_width="match_parent"
         android:layout_height="80dp"
-        android:background="@color/teal_200"
+        android:background="@drawable/layout_handle"
         android:layout_alignParentBottom="true">
         <androidx.cardview.widget.CardView
             android:id="@+id/card_img_song"
@@ -50,15 +74,17 @@
                 android:id="@+id/tv_name"
                 android:text="Song name"
                 android:textSize="18dp"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:ellipsize="marquee"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true" />
             <TextView
                 android:id="@+id/tv_single"
                 android:text="Single name"
                 android:textSize="15dp"
-                android:layout_width="wrap_content"
+                android:ellipsize="marquee"
+                android:singleLine="true"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
 
         </LinearLayout>
@@ -67,14 +93,14 @@
             android:layout_alignParentRight="true"
             android:layout_centerVertical="true"
             android:src="@drawable/close"
-            android:padding="2dp"
             android:layout_width="35dp"
             android:layout_height="35dp"/>
         <ImageView
             android:id="@+id/btn_next"
             android:layout_centerVertical="true"
             android:src="@drawable/next"
-            android:padding="2dp"
+            android:layout_marginRight="5dp"
+
             android:layout_toLeftOf="@id/btn_close"
             android:layout_width="35dp"
             android:layout_height="35dp"/>
@@ -82,7 +108,7 @@
             android:id="@+id/btn_play_or_pause"
             android:layout_centerVertical="true"
             android:src="@drawable/pause"
-            android:padding="2dp"
+            android:layout_marginRight="5dp"
             android:layout_toLeftOf="@id/btn_next"
             android:layout_width="35dp"
             android:layout_height="35dp"/>
@@ -90,7 +116,7 @@
             android:id="@+id/btn_previous"
             android:layout_centerVertical="true"
             android:src="@drawable/previous"
-            android:padding="2dp"
+            android:layout_marginRight="5dp"
             android:layout_toLeftOf="@id/btn_play_or_pause"
             android:layout_width="35dp"
             android:layout_height="35dp"/>

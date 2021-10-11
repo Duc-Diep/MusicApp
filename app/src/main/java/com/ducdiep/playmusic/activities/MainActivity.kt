@@ -7,9 +7,14 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
+import android.speech.RecognizerIntent
+import android.speech.tts.TextToSpeech
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
+import android.widget.PopupMenu
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -21,18 +26,25 @@ import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.Song
 import com.ducdiep.playmusic.services.MusicService
 import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
+import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
     lateinit var mSong: Song
-    var isPlaying: Boolean = false
     lateinit var listSong: ArrayList<Song>
     lateinit var songAdapter:SongAdapter
+    private val searcByvoice =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
+            if (it.resultCode == RESULT_OK&&it.data!=null){
+                var hi = it.data!!.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                edt_search.setText(hi!![0])
+            }
+        }
 
     var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             var bundle = intent.extras
             if (bundle == null) return
-            isPlaying = bundle.getBoolean(STATUS_PLAY)
             var action = bundle.getInt(ACTION)
             handleLayoutPlay(action)
         }
@@ -43,19 +55,19 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         AppPreferences.init(this)
+        supportActionBar?.hide()
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
         listSong = loadDefaultMusic(this)
         setupAdapter()
         requestPermisssion()
-        var actionReload = intent.getIntExtra(ACTION_RELOAD,0)
-        isPlaying = intent.getBooleanExtra(STATUS_PLAY,false)
+        var actionReload = intent.getIntExtra(ACTION_RELOAD, 0)
         if (actionReload==1){
             handleLayoutPlay(ACTION_START)
         }
 
         btn_play_or_pause.setOnClickListener {
-            if (isPlaying) {
+            if (AppPreferences.isPlaying) {
                 sendActionToService(ACTION_PAUSE)
             } else {
                 sendActionToService(ACTION_RESUME)
@@ -65,32 +77,68 @@ class MainActivity : AppCompatActivity() {
             sendActionToService(ACTION_CLEAR)
         }
         btn_next.setOnClickListener {
-            var intentService = Intent(this,MusicService::class.java)
+            var intentService = Intent(this, MusicService::class.java)
             intentService.putExtra(ACTION_TO_SERVICE, ACTION_NEXT)
             startService(intentService)
 
         }
         btn_previous.setOnClickListener {
-            var intentService = Intent(this,MusicService::class.java)
+            var intentService = Intent(this, MusicService::class.java)
             intentService.putExtra(ACTION_TO_SERVICE, ACTION_PREVIOUS)
             startService(intentService)
         }
         layout_title.setOnClickListener{
-            var intent = Intent(this,PlayMusicActivity::class.java)
+            var intent = Intent(this, PlayMusicActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-            intent.putExtra(STATUS_PLAY,isPlaying)
             startActivity(intent)
+        }
+        edt_search.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                var listTemp = ArrayList<Song>()
+                for (element in listSong) {
+                    if (element.name.toLowerCase()
+                            .contains(s.toString().toLowerCase()) || element.artist.toLowerCase()
+                            .contains(
+                                s.toString().toLowerCase()
+                            )
+                    ) {
+                        listTemp.add(element)
+                    }
+                }
+                songAdapter = SongAdapter(this@MainActivity, listTemp)
+                songAdapter.setOnClickItem {
+                    AppPreferences.indexPlaying = listSong.indexOf(it)
+                    playMusic()
+                    var intent = Intent(this@MainActivity, PlayMusicActivity::class.java)
+                    startActivity(intent)
+                }
+                rcv_songs.adapter = songAdapter
+            }
+
+        })
+
+        btn_mic.setOnClickListener {
+            showPopup(it)
         }
 
     }
 
+
     private fun setupAdapter() {
         songAdapter = SongAdapter(this, listSong)
         songAdapter.setOnClickItem {
-            AppPreferences.indexPlaying = it
+            AppPreferences.indexPlaying = listSong.indexOf(it)
             playMusic()
-            var intent = Intent(this,PlayMusicActivity::class.java)
-            intent.putExtra(STATUS_PLAY,true)
+            var intent = Intent(this, PlayMusicActivity::class.java)
+
             startActivity(intent)
 
         }
@@ -99,6 +147,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun playMusic() {
         var intent = Intent(this, MusicService::class.java)
+        intent.putExtra(ACTION_TO_SERVICE, ACTION_START)
         startService(intent)
     }
 
@@ -125,7 +174,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun setStatusButton() {
-        if (isPlaying) {
+        if (AppPreferences.isPlaying) {
             btn_play_or_pause.setImageResource(R.drawable.pause)
         } else {
             btn_play_or_pause.setImageResource(R.drawable.play)
@@ -138,6 +187,69 @@ class MainActivity : AppCompatActivity() {
         intent.putExtra(ACTION_TO_SERVICE, action)
         startService(intent)
     }
+
+    //create popup
+    private fun showPopup(view: View) {
+        var popupMenu = PopupMenu(this, view)
+        var inflater = popupMenu.menuInflater
+        inflater.inflate(R.menu.menu_language, popupMenu.menu)
+        popupMenu.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.lan_vn -> {
+                    searchByVoice("vi")
+                    true
+                }
+                R.id.lan_en -> {
+                    searchByVoice("en")
+                    true
+                }
+                else -> false
+            }
+        }
+        popupMenu.show()
+    }
+
+    private fun searchByVoice(s: String) {
+        when(s){
+            "vi"->{
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                intent.putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Nói gì đó đi: ")
+                try {
+                    searcByvoice.launch(intent)
+                }catch (ex:Exception){
+                    Toast.makeText(this@MainActivity, "Gặp lỗi khi sử dụng chức năng này", Toast.LENGTH_SHORT).show()
+                }
+            }
+            "en"->{
+//                textToSpeech = TextToSpeech(this@MainActivity) { status: Int ->
+//                    if (status != TextToSpeech.ERROR) {
+//                        textToSpeech.language = Locale(s)
+//                    } else {
+//                        Toast.makeText(this@MainActivity, "Error when use this function", Toast.LENGTH_SHORT).show()
+//                    }
+//                }
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                intent.putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en")
+                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Say something: ")
+                try {
+                    searcByvoice.launch(intent)
+                }catch (ex:Exception){
+                    Toast.makeText(this@MainActivity, "Error when use this function", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+    }
+
 
 
     override fun onDestroy() {
@@ -205,6 +317,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        setStatusButton()
     }
 
 

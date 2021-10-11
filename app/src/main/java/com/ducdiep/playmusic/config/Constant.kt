@@ -27,6 +27,7 @@ const val ACTION_RELOAD = "reload"
 const val SONG_OBJECT = "song"
 const val STATUS_PLAY = "status_play"
 const val ACTION = "action"
+const val CURRENT_POSITION = "position"
 const val IMAGE = "image"
 const val INDEX = "index"
 const val PROGRESS = "progress"
@@ -113,7 +114,7 @@ fun getAudio(context: Context): ArrayList<Song> {
     bitmapDefault2 = BitmapFactory.decodeResource(context.resources, R.drawable.tohka)
     val contentResolver = context.contentResolver
     val uri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-    val cursor: Cursor? = contentResolver.query(uri, null, null, null, null)
+    val cursor: Cursor? = contentResolver.query(uri, null, MediaStore.Audio.Media.IS_MUSIC, null, null)
     if (cursor != null && cursor.moveToFirst()) {
         do {
             val name: String =

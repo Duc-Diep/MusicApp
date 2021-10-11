@@ -11,13 +11,10 @@ import android.net.Uri
 import android.os.*
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
-import android.support.v4.media.session.PlaybackStateCompat
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ducdiep.playmusic.R
-import com.ducdiep.playmusic.activities.MainActivity
 import com.ducdiep.playmusic.activities.PlayMusicActivity
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.CHANNEL_ID
@@ -27,12 +24,15 @@ import com.ducdiep.playmusic.models.Song
 
 
 class MusicService : Service() {
-    var isPlaying = false
     var mediaPlayer: MediaPlayer? = null
     var listSong: ArrayList<Song>? = null
     lateinit var mSong: Song
-    lateinit var mPlaybackState: PlaybackStateCompat
+//    lateinit var mPlaybackState: PlaybackStateCompat
+    var currentPos:Int = 0
     lateinit var mediaSession: MediaSessionCompat
+
+    lateinit var listRandomed:ArrayList<Int>
+    var listPreviousRandom:ArrayList<Int> = ArrayList()
 
     private val binder = MusicBinder()
 
@@ -54,10 +54,7 @@ class MusicService : Service() {
 
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        //nhận dữ liệu từ activity khi gọi start service
-        mSong = listSong!![AppPreferences.indexPlaying]
-        startMusic(AppPreferences.indexPlaying)
-        sendNotificationMedia(AppPreferences.indexPlaying)
+
         //xử lí action nhận từ broadcast or activity
         var actionMusic = intent.getIntExtra(ACTION_TO_SERVICE, 0)
         handleMusic(actionMusic)
@@ -73,9 +70,17 @@ class MusicService : Service() {
         ) {
             listSong!!.addAll(getAudio(this))
         }
+        reloadListRandom()
+    }
+    fun reloadListRandom(){
+        listRandomed = ArrayList()
+        for (i in 0 until listSong!!.size){
+            listRandomed.add(i)
+        }
     }
 
     private fun startMusic(index: Int) {
+        listRandomed.remove(index)
         if (mediaPlayer == null) {
             mediaPlayer = MediaPlayer()
         }
@@ -83,15 +88,20 @@ class MusicService : Service() {
         mediaPlayer!!.setDataSource(this, Uri.parse(listSong!![index].resource))
         mediaPlayer!!.prepare()
         mediaPlayer?.start()
-        isPlaying = true
+        AppPreferences.isPlaying = true
         sendActionToActivity(ACTION_START)
         mediaPlayer!!.setOnCompletionListener {
-            playNextMusic()
+            if (AppPreferences.isRepeatOne){
+                startMusic(AppPreferences.indexPlaying)
+            }else{
+                playNextMusic()
+            }
         }
     }
 
     fun handleMusic(action: Int) {
         when (action) {
+            ACTION_START -> startNewMusic()
             ACTION_RESUME -> resumeMusic()
             ACTION_PAUSE -> pauseMusic()
             ACTION_CLEAR -> {
@@ -108,43 +118,86 @@ class MusicService : Service() {
         }
     }
 
+    private fun startNewMusic() {
+        mSong = listSong!![AppPreferences.indexPlaying]
+        startMusic(AppPreferences.indexPlaying)
+        sendNotificationMedia(AppPreferences.indexPlaying)
+    }
+
     fun playPreviousMusic() {
-        if (AppPreferences.indexPlaying == 0) {
-            startMusic(listSong!!.size - 1)
-            AppPreferences.indexPlaying = listSong!!.size - 1
+        if (AppPreferences.isShuffle) {
+            if (listPreviousRandom.size>0){
+                if (listPreviousRandom.size==1){
+                    var index = listPreviousRandom.size-1
+                    startMusic(listPreviousRandom[index])
+                    AppPreferences.indexPlaying = listPreviousRandom[index]
+                    listPreviousRandom.removeLastOrNull()
+                }else{
+                    var index = listPreviousRandom.size-2
+                    startMusic(listPreviousRandom[index])
+                    AppPreferences.indexPlaying = listPreviousRandom[index]
+                    listPreviousRandom.removeLastOrNull()
+                }
+
+            }else{
+                var rd = (0 until listRandomed!!.size).random()
+                AppPreferences.indexPlaying = listRandomed[rd]
+                startMusic(listRandomed[rd])
+                if (listRandomed.size==0){
+                    reloadListRandom()
+                }
+            }
         } else {
-            startMusic(AppPreferences.indexPlaying - 1)
-            AppPreferences.indexPlaying = AppPreferences.indexPlaying - 1
+            if (AppPreferences.indexPlaying == 0) {
+                startMusic(listSong!!.size - 1)
+                AppPreferences.indexPlaying = listSong!!.size - 1
+            } else {
+                startMusic(AppPreferences.indexPlaying - 1)
+                AppPreferences.indexPlaying = AppPreferences.indexPlaying - 1
+            }
         }
         sendNotificationMedia(AppPreferences.indexPlaying)
         sendActionToActivity(ACTION_PREVIOUS)
     }
 
     fun playNextMusic() {
-        if (AppPreferences.indexPlaying == listSong!!.size - 1) {
-            startMusic(0)
-            AppPreferences.indexPlaying = 0
+        if (AppPreferences.isShuffle) {
+            var rd = (0 until listRandomed!!.size).random()
+            AppPreferences.indexPlaying = listRandomed[rd]
+            listPreviousRandom.add(listRandomed[rd])
+            startMusic(listRandomed[rd])
+
+            if (listRandomed.size==0){
+                reloadListRandom()
+            }
         } else {
-            startMusic(AppPreferences.indexPlaying + 1)
-            AppPreferences.indexPlaying = AppPreferences.indexPlaying + 1
+            if (AppPreferences.indexPlaying == listSong!!.size - 1) {
+                startMusic(0)
+                AppPreferences.indexPlaying = 0
+            } else {
+                startMusic(AppPreferences.indexPlaying + 1)
+                AppPreferences.indexPlaying = AppPreferences.indexPlaying + 1
+            }
         }
+
         sendNotificationMedia(AppPreferences.indexPlaying)
         sendActionToActivity(ACTION_NEXT)
     }
 
 
     fun pauseMusic() {
-            mediaPlayer!!.pause()
-            isPlaying = false
-            sendNotificationMedia(AppPreferences.indexPlaying)
-            sendActionToActivity(ACTION_PAUSE)
+        currentPos = mediaPlayer!!.currentPosition
+        mediaPlayer!!.pause()
+        AppPreferences.isPlaying = false
+        sendNotificationMedia(AppPreferences.indexPlaying)
+        sendActionToActivity(ACTION_PAUSE)
     }
 
     fun resumeMusic() {
-            mediaPlayer!!.start()
-            isPlaying = true
-            sendNotificationMedia(AppPreferences.indexPlaying)
-            sendActionToActivity(ACTION_RESUME)
+        mediaPlayer!!.start()
+        AppPreferences.isPlaying = true
+        sendNotificationMedia(AppPreferences.indexPlaying)
+        sendActionToActivity(ACTION_RESUME)
     }
 
 //    private fun sendNotification(song: Song) {
@@ -234,7 +287,7 @@ class MusicService : Service() {
             .setContentTitle(song.name)
             .setContentIntent(pendingIntent)
 
-        if (isPlaying) {
+        if (AppPreferences.isPlaying) {
             notificationBuilder
                 .addAction(R.drawable.previous, "Previous", getPendingIntent(this, ACTION_PREVIOUS))
                 .addAction(R.drawable.pause, "PlayOrPause", getPendingIntent(this, ACTION_PAUSE))
@@ -243,7 +296,11 @@ class MusicService : Service() {
         } else {
             notificationBuilder
                 .addAction(R.drawable.previous, "Previous", getPendingIntent(this, ACTION_PREVIOUS))
-                .addAction(R.drawable.ic_baseline_play_circle_outline_24, "PlayOrPause", getPendingIntent(this, ACTION_RESUME))
+                .addAction(
+                    R.drawable.play24dp,
+                    "PlayOrPause",
+                    getPendingIntent(this, ACTION_RESUME)
+                )
                 .addAction(R.drawable.next, "Next", getPendingIntent(this, ACTION_NEXT))
                 .addAction(R.drawable.close, "Close", getPendingIntent(this, ACTION_CLEAR))
         }
@@ -300,19 +357,21 @@ class MusicService : Service() {
 
 
     override fun onDestroy() {
-        super.onDestroy()
         if (mediaPlayer != null) {
             mediaPlayer!!.release()
             mediaPlayer = null
         }
+        AppPreferences.isRepeatOne = false
+        AppPreferences.isShuffle = false
+        super.onDestroy()
     }
 
     //gửi data qua activity để hiện thị trên UI
     fun sendActionToActivity(action: Int) {
         var intent = Intent(ACTION_SEND_TO_ACTIVITY)
         var bundle = Bundle()
-        bundle.putBoolean(STATUS_PLAY, isPlaying)
         bundle.putInt(ACTION, action)
+        bundle.putInt(CURRENT_POSITION,currentPos)
         intent.putExtras(bundle)
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }

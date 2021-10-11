@@ -13,9 +13,9 @@ import com.ducdiep.playmusic.models.Song
 
 class SongAdapter(var context: Context, var listSong: ArrayList<Song>) :
     RecyclerView.Adapter<SongAdapter.SongViewHolder>() {
-    var onClick: ((Int) -> Unit)? = null
+    var onClick: ((Song) -> Unit)? = null
 
-    fun setOnClickItem(callBack:(Int)->Unit){
+    fun setOnClickItem(callBack:(Song)->Unit){
         onClick = callBack
     }
 
@@ -31,7 +31,7 @@ class SongAdapter(var context: Context, var listSong: ArrayList<Song>) :
         holder.tvSongArtist.text = song.artist
         holder.imgSong.setImageBitmap(song.imageBitmap)
         holder.imgPlay.setOnClickListener {
-            onClick?.invoke(position)
+            onClick?.invoke(song)
         }
     }
 
