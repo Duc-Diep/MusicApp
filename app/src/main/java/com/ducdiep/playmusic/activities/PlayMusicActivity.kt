@@ -86,8 +86,6 @@ class PlayMusicActivity : AppCompatActivity() {
         supportActionBar?.hide()
         AppPreferences.init(this)
 
-        tv_song_name.ellipsize = TextUtils.TruncateAt.MARQUEE
-        tv_artist.ellipsize = TextUtils.TruncateAt.MARQUEE
         setStatusButton()
         activityManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
         LocalBroadcastManager.getInstance(this)
@@ -115,6 +113,7 @@ class PlayMusicActivity : AppCompatActivity() {
                 var intent = Intent(this, MainActivity::class.java)
                 intent.putExtra(ACTION_RELOAD, 1)
                 startActivity(intent)
+                finish()
             }
         }
         btn_handle_play_or_pause.setOnClickListener {
@@ -294,8 +293,12 @@ class PlayMusicActivity : AppCompatActivity() {
             var intent = Intent(this, MainActivity::class.java)
             intent.putExtra(ACTION_RELOAD, 1)
             startActivity(intent)
+            finish()
         }
-        handler.removeCallbacks(runnable)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
     }
 
 }

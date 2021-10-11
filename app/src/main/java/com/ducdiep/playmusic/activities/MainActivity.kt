@@ -84,11 +84,14 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.hide()
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
-        setupAdapter()
-        requestPermisssion()
+
         var actionReload = intent.getIntExtra(ACTION_RELOAD, 0)
         if (actionReload==1){
             handleLayoutPlay(ACTION_START)
+            setupAdapter()
+        }else{
+            setupAdapter()
+            requestPermisssion()
         }
 
         btn_play_or_pause.setOnClickListener {
@@ -198,7 +201,6 @@ class MainActivity : AppCompatActivity() {
             btn_play_or_pause.setImageResource(R.drawable.pause)
         } else {
             btn_play_or_pause.setImageResource(R.drawable.play)
-
         }
     }
 
