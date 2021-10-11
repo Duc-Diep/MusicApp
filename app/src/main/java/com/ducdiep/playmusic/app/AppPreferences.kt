@@ -9,10 +9,11 @@ object AppPreferences {
     private const val MODE = Context.MODE_PRIVATE
     private lateinit var preferences: SharedPreferences
 
-    private val INDEX_PLAYING = Pair("index",0)
+    private val INDEX_PLAYING = Pair("index",-1)
     private val IS_SHUFFLE = Pair("shuffle",false)
     private val IS_PLAYING = Pair("playing",false)
     private val IS_REPEAT_ONE = Pair("repeatone",false)
+    private val IS_RELOAD_MAIN = Pair("repeatmain",false)
 
     fun init(context: Context?) {
         preferences = context?.getSharedPreferences(NAME, MODE)!!
@@ -42,5 +43,10 @@ object AppPreferences {
         get() = preferences.getBoolean(IS_PLAYING.first, IS_PLAYING.second)
         set(value) = preferences.edit {
             it.putBoolean(IS_PLAYING.first, value)
+        }
+    var isReloadMain: Boolean
+        get() = preferences.getBoolean(IS_RELOAD_MAIN.first, IS_RELOAD_MAIN.second)
+        set(value) = preferences.edit {
+            it.putBoolean(IS_RELOAD_MAIN.first, value)
         }
 }

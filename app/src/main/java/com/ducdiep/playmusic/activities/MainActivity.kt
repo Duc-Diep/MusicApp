@@ -84,14 +84,22 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.hide()
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
-
+        if (AppPreferences.isPlaying){
+            handleLayoutPlay(ACTION_START)
+        }else if (AppPreferences.indexPlaying!=-1){
+            layout_playing.visibility = View.VISIBLE
+            setStatusButton()
+        }
         var actionReload = intent.getIntExtra(ACTION_RELOAD, 0)
         if (actionReload==1){
             handleLayoutPlay(ACTION_START)
             setupAdapter()
+            AppPreferences.isReloadMain = true
         }else{
             setupAdapter()
-            requestPermisssion()
+            if (!AppPreferences.isReloadMain){
+                requestPermisssion()
+            }
         }
 
         btn_play_or_pause.setOnClickListener {
@@ -173,7 +181,10 @@ class MainActivity : AppCompatActivity() {
             }
             ACTION_PAUSE -> setStatusButton()
             ACTION_RESUME -> setStatusButton()
-            ACTION_CLEAR -> layout_playing.visibility = View.GONE
+            ACTION_CLEAR -> {
+                layout_playing.visibility = View.GONE
+                reloadData()
+            }
             ACTION_NEXT -> showDetailMusic()
             ACTION_PREVIOUS -> showDetailMusic()
         }

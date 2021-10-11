@@ -352,8 +352,7 @@ class MusicService : Service() {
             mediaPlayer!!.release()
             mediaPlayer = null
         }
-        AppPreferences.isRepeatOne = false
-        AppPreferences.isShuffle = false
+        reloadData()
         super.onDestroy()
     }
 

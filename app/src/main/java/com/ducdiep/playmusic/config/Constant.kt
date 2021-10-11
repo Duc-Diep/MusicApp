@@ -12,6 +12,7 @@ import android.provider.MediaStore
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.ducdiep.playmusic.R
+import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.models.Song
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.InputStream
@@ -133,4 +134,11 @@ fun getAudio(context: Context): ArrayList<Song> {
     }
     cursor!!.close()
     return listSong
+}
+fun reloadData(){
+    AppPreferences.isRepeatOne = false
+    AppPreferences.isShuffle = false
+    AppPreferences.indexPlaying=-1
+    AppPreferences.isPlaying = false
+    AppPreferences.isReloadMain = false
 }
