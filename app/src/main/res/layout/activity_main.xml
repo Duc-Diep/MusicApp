@@ -42,7 +42,7 @@
     </androidx.core.widget.NestedScrollView>
     <RelativeLayout
         android:id="@+id/layout_playing"
-        android:visibility="visible"
+        android:visibility="gone"
         android:paddingHorizontal="10dp"
         android:layout_width="match_parent"
         android:layout_height="80dp"
@@ -57,7 +57,7 @@
             <ImageView
                 android:id="@+id/img_song"
                 android:scaleType="fitXY"
-                android:src="@drawable/mayu"
+                android:src="@drawable/music_logo"
                 android:layout_width="40dp"
                 android:layout_height="40dp"/>
         </androidx.cardview.widget.CardView>

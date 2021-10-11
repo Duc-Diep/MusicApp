@@ -29,7 +29,9 @@ class PlayMusicActivity : AppCompatActivity() {
     //set up bound service
     private lateinit var mService: MusicService
     private var mBound: Boolean = false
-    var currentPos:Int = 0
+    var currentPos: Int = 0
+    lateinit var handler: Handler
+    lateinit var runnable: Runnable
 
     private val connection = object : ServiceConnection {
 
@@ -41,6 +43,7 @@ class PlayMusicActivity : AppCompatActivity() {
         }
 
         override fun onServiceDisconnected(arg0: ComponentName) {
+            handler.removeCallbacks(runnable)
             mBound = false
         }
     }
@@ -80,6 +83,7 @@ class PlayMusicActivity : AppCompatActivity() {
         setContentView(R.layout.activity_play_music)
         supportActionBar?.hide()
         AppPreferences.init(this)
+        loadAllMusic()
         setStatusButton()
         activityManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
         LocalBroadcastManager.getInstance(this)
@@ -90,7 +94,6 @@ class PlayMusicActivity : AppCompatActivity() {
         if (AppPreferences.isRepeatOne) {
             btn_handle_repeat.setImageResource(R.drawable.ic_baseline_repeat_one_50)
         }
-        loadAllMusic()
         showDetailMusic()
 
         anim = ObjectAnimator.ofFloat(img_music, "rotation", 0f, 360f)
@@ -114,7 +117,7 @@ class PlayMusicActivity : AppCompatActivity() {
             if (AppPreferences.isPlaying) {
                 pauseMusic()
             } else {
-               resumeMusic()
+                resumeMusic()
             }
         }
 
@@ -201,7 +204,8 @@ class PlayMusicActivity : AppCompatActivity() {
                 showDetailMusic()
                 seekbar_handle.progress = 0
             }
-            ACTION_CLEAR ->  {
+            ACTION_CLEAR -> {
+                handler.removeCallbacks(runnable)
                 finish()
             }
 
@@ -232,17 +236,18 @@ class PlayMusicActivity : AppCompatActivity() {
         tv_progress.text = timerConversion(currentPos.toLong())
         tv_duration.text = timerConversion(duration)
         seekbar_handle.max = duration.toInt()
-        val handler = Handler(mainLooper)
+        handler = Handler(mainLooper)
 
-        val runnable: Runnable = object : Runnable {
+        runnable = object : Runnable {
             override fun run() {
                 try {
                     tv_progress.text =
                         timerConversion(mService.mediaPlayer?.currentPosition!!.toLong())
                     seekbar_handle.progress = mService.mediaPlayer?.currentPosition!!
                     handler.postDelayed(this, 1000)
-                } catch (ed: IllegalStateException) {
-                    ed.printStackTrace()
+
+                } catch (ex: Exception) {
+
                 }
             }
         }
@@ -287,6 +292,8 @@ class PlayMusicActivity : AppCompatActivity() {
             intent.putExtra(ACTION_RELOAD, 1)
             startActivity(intent)
         }
+        handler.removeCallbacks(runnable)
         super.onBackPressed()
     }
+
 }

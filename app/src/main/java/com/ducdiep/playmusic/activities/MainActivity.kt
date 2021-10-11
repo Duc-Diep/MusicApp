@@ -217,7 +217,7 @@ class MainActivity : AppCompatActivity() {
                     RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                     RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
                 )
-                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, s)
                 intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Nói gì đó đi: ")
                 try {
                     searcByvoice.launch(intent)
@@ -238,7 +238,7 @@ class MainActivity : AppCompatActivity() {
                     RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                     RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
                 )
-                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en")
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, s)
                 intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Say something: ")
                 try {
                     searcByvoice.launch(intent)
@@ -287,6 +287,7 @@ class MainActivity : AppCompatActivity() {
             }
         } else {
             listSong.addAll(getAudio(this))
+            rcv_songs.adapter?.notifyDataSetChanged()
         }
     }
 
@@ -313,7 +314,6 @@ class MainActivity : AppCompatActivity() {
                     ).show()
                     return
                 }
-
             }
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)

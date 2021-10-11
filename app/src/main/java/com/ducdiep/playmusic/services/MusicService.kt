@@ -105,9 +105,9 @@ class MusicService : Service() {
             ACTION_RESUME -> resumeMusic()
             ACTION_PAUSE -> pauseMusic()
             ACTION_CLEAR -> {
+                sendActionToActivity(ACTION_CLEAR)
                 mediaPlayer?.release()
                 stopSelf()
-                sendActionToActivity(ACTION_CLEAR)
             }
             ACTION_NEXT -> {
                 playNextMusic()
@@ -140,6 +140,9 @@ class MusicService : Service() {
                 }
 
             }else{
+                if (listRandomed.size==0){
+                    reloadListRandom()
+                }
                 var rd = (0 until listRandomed!!.size).random()
                 AppPreferences.indexPlaying = listRandomed[rd]
                 startMusic(listRandomed[rd])
@@ -162,14 +165,15 @@ class MusicService : Service() {
 
     fun playNextMusic() {
         if (AppPreferences.isShuffle) {
+            if (listRandomed.size==0){
+                reloadListRandom()
+            }
             var rd = (0 until listRandomed!!.size).random()
             AppPreferences.indexPlaying = listRandomed[rd]
             listPreviousRandom.add(listRandomed[rd])
             startMusic(listRandomed[rd])
 
-            if (listRandomed.size==0){
-                reloadListRandom()
-            }
+
         } else {
             if (AppPreferences.indexPlaying == listSong!!.size - 1) {
                 startMusic(0)

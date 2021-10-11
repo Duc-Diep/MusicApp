@@ -7,7 +7,7 @@
         android:id="@+id/img_song_item"
         android:layout_centerVertical="true"
         android:scaleType="fitXY"
-        android:src="@drawable/mayu"
+        android:src="@drawable/music_logo"
         android:layout_width="45dp"
         android:layout_height="45dp"/>
     <RelativeLayout

@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.models.Song
@@ -34,12 +35,12 @@ const val PROGRESS = "progress"
 const val ACTION_SEND_TO_ACTIVITY = "action_send_data_to_activity"
 const val ACTION_SERVICE_TO_BROADCAST = "action_service_to_broadcast"
 const val ACTION_TO_SERVICE = "action_broadcast_to_service"
-lateinit var bitmapDefault1: Bitmap
-lateinit var bitmapDefault2: Bitmap
+lateinit var bitmapDefault: Bitmap
+
 
 
 fun loadDefaultMusic(context: Context): ArrayList<Song> {
-    bitmapDefault1 = BitmapFactory.decodeResource(context.resources, R.drawable.mayu)
+    bitmapDefault = BitmapFactory.decodeResource(context.resources, R.drawable.musical_default)
     var listSong = ArrayList<Song>()
     listSong.apply {
         add(
@@ -47,7 +48,7 @@ fun loadDefaultMusic(context: Context): ArrayList<Song> {
                 "Key of truth",
                 "Sweet Arms",
                 "233000",
-                bitmapDefault1,
+                bitmapDefault,
                 "android.resource://com.ducdiep.playmusic/" + R.raw.key_of_truth
             )
         )
@@ -56,26 +57,8 @@ fun loadDefaultMusic(context: Context): ArrayList<Song> {
                 "Date a live",
                 "Sweet Arms",
                 "107000",
-                bitmapDefault1,
+                bitmapDefault,
                 "android.resource://com.ducdiep.playmusic/" + R.raw.date_a_live_spirit_pledge
-            )
-        )
-        add(
-            Song(
-                "Dramma",
-                "МиМиМи (Mimimi)",
-                "224000",
-                bitmapDefault1,
-                "android.resource://com.ducdiep.playmusic/" + R.raw.dramma
-            )
-        )
-        add(
-            Song(
-                "EDM",
-                "Đức Điệp",
-                "307000",
-                bitmapDefault1,
-                "android.resource://com.ducdiep.playmusic/" + R.raw.edm
             )
         )
         add(
@@ -83,7 +66,7 @@ fun loadDefaultMusic(context: Context): ArrayList<Song> {
                 "Ichinen Nikagetsu Hatsuka",
                 "BRIGHT",
                 "313000",
-                bitmapDefault1,
+                bitmapDefault,
                 "android.resource://com.ducdiep.playmusic/" + R.raw.ichinen_nikagetsu_hatsuka
             )
         )
@@ -92,7 +75,7 @@ fun loadDefaultMusic(context: Context): ArrayList<Song> {
                 "Summertime",
                 "Cinnamons, Evening Cinema",
                 "251000",
-                bitmapDefault1,
+                bitmapDefault,
                 "android.resource://com.ducdiep.playmusic/" + R.raw.summertime
             )
         )
@@ -101,7 +84,7 @@ fun loadDefaultMusic(context: Context): ArrayList<Song> {
                 "Xomu Lantern",
                 "Miyuri Remix",
                 "211000",
-                bitmapDefault1,
+                bitmapDefault,
                 "android.resource://com.ducdiep.playmusic/" + R.raw.xomu_lantern
             )
         )
@@ -111,10 +94,14 @@ fun loadDefaultMusic(context: Context): ArrayList<Song> {
 
 fun getAudio(context: Context): ArrayList<Song> {
     var listSong = ArrayList<Song>()
-    bitmapDefault2 = BitmapFactory.decodeResource(context.resources, R.drawable.tohka)
+    try {
+        bitmapDefault = BitmapFactory.decodeResource(context.resources, R.drawable.musical_default)
+    }catch (ex:Exception){
+        Toast.makeText(context,"Ảnh quá nặng vượt mức cho phép",Toast.LENGTH_SHORT).show()
+    }
     val contentResolver = context.contentResolver
     val uri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-    val cursor: Cursor? = contentResolver.query(uri, null, MediaStore.Audio.Media.IS_MUSIC, null, null)
+    val cursor: Cursor? = contentResolver.query(uri, null, MediaStore.Audio.Media.IS_MUSIC+"!=0", null, null)
     if (cursor != null && cursor.moveToFirst()) {
         do {
             val name: String =
@@ -129,10 +116,9 @@ fun getAudio(context: Context): ArrayList<Song> {
             val duration: String =
                 cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
 
-            if (url.contains(".mp3")) {
                 var song: Song
                 if (bitmap == null) {
-                    song = Song(name, artist, duration, bitmapDefault2, url)
+                    song = Song(name, artist, duration, bitmapDefault, url)
                 } else {
                     song = Song(
                         name,
@@ -143,8 +129,8 @@ fun getAudio(context: Context): ArrayList<Song> {
                     )
                 }
                 listSong.add(song)
-            }
         } while (cursor.moveToNext())
     }
+    cursor!!.close()
     return listSong
 }
