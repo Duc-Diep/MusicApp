@@ -7,9 +7,11 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.text.Editable
+import android.text.TextUtils
 import android.text.TextWatcher
 import android.view.View
 import android.widget.PopupMenu
@@ -22,6 +24,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.adapters.SongAdapter
 import com.ducdiep.playmusic.app.AppPreferences
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSong
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.Song
 import com.ducdiep.playmusic.services.MusicService
@@ -31,7 +34,6 @@ import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
     lateinit var mSong: Song
-    lateinit var listSong: ArrayList<Song>
     lateinit var songAdapter:SongAdapter
     private val searcByvoice =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
@@ -51,6 +53,30 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    var handleSeach = Handler()
+    val runSearch = Runnable {
+        var s = edt_search.text.toString()
+        var listTemp = ArrayList<Song>()
+        for (element in listSong) {
+            if (element.name.toLowerCase()
+                    .contains(s.toLowerCase()) || element.artist.toLowerCase()
+                    .contains(
+                        s.toLowerCase()
+                    )
+            ) {
+                listTemp.add(element)
+            }
+        }
+        songAdapter = SongAdapter(this@MainActivity, listTemp)
+        songAdapter.setOnClickItem {
+            AppPreferences.indexPlaying = listSong.indexOf(it)
+            playMusic()
+            var intent = Intent(this@MainActivity, PlayMusicActivity::class.java)
+            startActivity(intent)
+        }
+        rcv_songs.adapter = songAdapter
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -58,7 +84,6 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.hide()
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
-        listSong = loadDefaultMusic(this)
         setupAdapter()
         requestPermisssion()
         var actionReload = intent.getIntExtra(ACTION_RELOAD, 0)
@@ -92,6 +117,7 @@ class MainActivity : AppCompatActivity() {
             intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
         }
+
         edt_search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
 
@@ -102,25 +128,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun afterTextChanged(s: Editable?) {
-                var listTemp = ArrayList<Song>()
-                for (element in listSong) {
-                    if (element.name.toLowerCase()
-                            .contains(s.toString().toLowerCase()) || element.artist.toLowerCase()
-                            .contains(
-                                s.toString().toLowerCase()
-                            )
-                    ) {
-                        listTemp.add(element)
-                    }
-                }
-                songAdapter = SongAdapter(this@MainActivity, listTemp)
-                songAdapter.setOnClickItem {
-                    AppPreferences.indexPlaying = listSong.indexOf(it)
-                    playMusic()
-                    var intent = Intent(this@MainActivity, PlayMusicActivity::class.java)
-                    startActivity(intent)
-                }
-                rcv_songs.adapter = songAdapter
+                handleSeach.removeCallbacks(runSearch)
+                handleSeach.postDelayed(runSearch, 800)
             }
 
         })
@@ -130,6 +139,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     }
+
 
 
     private fun setupAdapter() {
@@ -170,7 +180,17 @@ class MainActivity : AppCompatActivity() {
         mSong = listSong[AppPreferences.indexPlaying]
         img_song.setImageBitmap(mSong.imageBitmap)
         tv_name.text = mSong.name
+        tv_name.ellipsize = TextUtils.TruncateAt.MARQUEE
+        tv_name.setHorizontallyScrolling(true)
+        tv_name.isSelected = true
+        tv_name.marqueeRepeatLimit = -1
+        tv_name.isFocusable = true
         tv_single.text = mSong.artist
+        tv_single.ellipsize = TextUtils.TruncateAt.MARQUEE
+        tv_single.setHorizontallyScrolling(true)
+        tv_single.isSelected = true
+        tv_single.marqueeRepeatLimit = -1
+        tv_single.isFocusable = true
     }
 
     fun setStatusButton() {

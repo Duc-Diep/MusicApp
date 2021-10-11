@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
+import android.text.TextUtils
 import android.view.animation.AnimationUtils
 import android.view.animation.LinearInterpolator
 import android.widget.SeekBar
@@ -20,9 +21,11 @@ import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.app.AppPreferences
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSong
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.Song
 import com.ducdiep.playmusic.services.MusicService
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_play_music.*
 
 class PlayMusicActivity : AppCompatActivity() {
@@ -62,7 +65,6 @@ class PlayMusicActivity : AppCompatActivity() {
     }
 
     //variables
-    lateinit var listSong: ArrayList<Song>
     lateinit var mSong: Song
     lateinit var activityManager: ActivityManager
     lateinit var anim: ObjectAnimator
@@ -83,7 +85,9 @@ class PlayMusicActivity : AppCompatActivity() {
         setContentView(R.layout.activity_play_music)
         supportActionBar?.hide()
         AppPreferences.init(this)
-        loadAllMusic()
+
+        tv_song_name.ellipsize = TextUtils.TruncateAt.MARQUEE
+        tv_artist.ellipsize = TextUtils.TruncateAt.MARQUEE
         setStatusButton()
         activityManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
         LocalBroadcastManager.getInstance(this)
@@ -174,17 +178,6 @@ class PlayMusicActivity : AppCompatActivity() {
         anim.pause()
     }
 
-    fun loadAllMusic() {
-        listSong = loadDefaultMusic(this)
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            listSong!!.addAll(getAudio(this))
-        }
-    }
-
     private fun handleLayoutPlay(action: Int) {
         when (action) {
             ACTION_START -> {
@@ -224,7 +217,17 @@ class PlayMusicActivity : AppCompatActivity() {
         mSong = listSong[AppPreferences.indexPlaying]
         img_music.setImageBitmap(mSong.imageBitmap)
         tv_song_name.text = mSong.name
+        tv_song_name.ellipsize = TextUtils.TruncateAt.MARQUEE
+        tv_song_name.setHorizontallyScrolling(true)
+        tv_song_name.isSelected = true
+        tv_song_name.marqueeRepeatLimit = -1
+        tv_song_name.isFocusable = true
         tv_artist.text = mSong.artist
+        tv_artist.ellipsize = TextUtils.TruncateAt.MARQUEE
+        tv_artist.setHorizontallyScrolling(true)
+        tv_artist.isSelected = true
+        tv_artist.marqueeRepeatLimit = -1
+        tv_artist.isFocusable = true
         img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
     }
 

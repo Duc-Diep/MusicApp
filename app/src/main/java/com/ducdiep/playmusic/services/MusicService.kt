@@ -18,6 +18,7 @@ import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.activities.PlayMusicActivity
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.CHANNEL_ID
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSong
 import com.ducdiep.playmusic.broadcasts.MyReceiver
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.Song
@@ -25,7 +26,6 @@ import com.ducdiep.playmusic.models.Song
 
 class MusicService : Service() {
     var mediaPlayer: MediaPlayer? = null
-    var listSong: ArrayList<Song>? = null
     lateinit var mSong: Song
 //    lateinit var mPlaybackState: PlaybackStateCompat
     var currentPos:Int = 0
@@ -46,9 +46,7 @@ class MusicService : Service() {
 
     override fun onCreate() {
         AppPreferences.init(this)
-        if (listSong == null) {
-            loadAllMusic()
-        }
+        reloadListRandom()
         super.onCreate()
     }
 
@@ -61,17 +59,6 @@ class MusicService : Service() {
         return START_NOT_STICKY
     }
 
-    fun loadAllMusic() {
-        listSong = loadDefaultMusic(this)
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            listSong!!.addAll(getAudio(this))
-        }
-        reloadListRandom()
-    }
     fun reloadListRandom(){
         listRandomed = ArrayList()
         for (i in 0 until listSong!!.size){
