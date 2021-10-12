@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.MediaStore
+import android.util.Log
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.ducdiep.playmusic.R
@@ -41,7 +42,11 @@ lateinit var bitmapDefault: Bitmap
 
 
 fun loadDefaultMusic(context: Context): ArrayList<Song> {
-    bitmapDefault = BitmapFactory.decodeResource(context.resources, R.drawable.musical_default)
+    try {
+        bitmapDefault = BitmapFactory.decodeResource(context.resources, R.drawable.musical_default)
+    }catch (ex:Exception){
+        Toast.makeText(context,"Ảnh quá nặng vượt mức cho phép",Toast.LENGTH_SHORT).show()
+    }
     var listSong = ArrayList<Song>()
     listSong.apply {
         add(
@@ -113,19 +118,23 @@ fun getAudio(context: Context): ArrayList<Song> {
                 cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
             var media = MediaMetadataRetriever()
             media.setDataSource(url)
-            var bitmap: ByteArray? = media.embeddedPicture
             val duration: String =
                 cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
-
+            var byteArray: ByteArray? = media.embeddedPicture
+            var bitmapPicture:Bitmap = try {
+                BitmapFactory.decodeByteArray(byteArray, 0, byteArray!!.size)
+            }catch (ex:Exception){
+                bitmapDefault
+            }
                 var song: Song
-                if (bitmap == null) {
+                if (bitmapPicture == null) {
                     song = Song(name, artist, duration, bitmapDefault, url)
                 } else {
                     song = Song(
                         name,
                         artist,
                         duration,
-                        BitmapFactory.decodeByteArray(bitmap, 0, bitmap.size),
+                        bitmapPicture,
                         url
                     )
                 }
@@ -140,5 +149,5 @@ fun reloadData(){
     AppPreferences.isShuffle = false
     AppPreferences.indexPlaying=-1
     AppPreferences.isPlaying = false
-    AppPreferences.isReloadMain = false
+    AppPreferences.isLoaded = false
 }

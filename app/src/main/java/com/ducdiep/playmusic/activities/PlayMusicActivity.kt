@@ -198,6 +198,7 @@ class PlayMusicActivity : AppCompatActivity() {
             }
             ACTION_CLEAR -> {
                 handler.removeCallbacks(runnable)
+                reloadData()
                 finish()
             }
 

@@ -13,7 +13,7 @@ object AppPreferences {
     private val IS_SHUFFLE = Pair("shuffle",false)
     private val IS_PLAYING = Pair("playing",false)
     private val IS_REPEAT_ONE = Pair("repeatone",false)
-    private val IS_RELOAD_MAIN = Pair("repeatmain",false)
+    private val IS_LOADED = Pair("isLoaded",false)
 
     fun init(context: Context?) {
         preferences = context?.getSharedPreferences(NAME, MODE)!!
@@ -44,9 +44,9 @@ object AppPreferences {
         set(value) = preferences.edit {
             it.putBoolean(IS_PLAYING.first, value)
         }
-    var isReloadMain: Boolean
-        get() = preferences.getBoolean(IS_RELOAD_MAIN.first, IS_RELOAD_MAIN.second)
+    var isLoaded: Boolean
+        get() = preferences.getBoolean(IS_LOADED.first, IS_LOADED.second)
         set(value) = preferences.edit {
-            it.putBoolean(IS_RELOAD_MAIN.first, value)
+            it.putBoolean(IS_LOADED.first, value)
         }
 }

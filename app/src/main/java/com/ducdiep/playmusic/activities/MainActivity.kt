@@ -34,10 +34,10 @@ import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
     lateinit var mSong: Song
-    lateinit var songAdapter:SongAdapter
+    lateinit var songAdapter: SongAdapter
     private val searcByvoice =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()){
-            if (it.resultCode == RESULT_OK&&it.data!=null){
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            if (it.resultCode == RESULT_OK && it.data != null) {
                 var hi = it.data!!.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
                 edt_search.setText(hi!![0])
             }
@@ -84,22 +84,22 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.hide()
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
-        if (AppPreferences.isPlaying){
-            handleLayoutPlay(ACTION_START)
-        }else if (AppPreferences.indexPlaying!=-1){
-            layout_playing.visibility = View.VISIBLE
-            setStatusButton()
+
+        setupAdapter()
+        requestPermisssion()
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED&&!AppPreferences.isLoaded
+        ){
+            progress_bar.visibility = View.VISIBLE
+            listSong.addAll(getAudio(this))
+            rcv_songs.adapter?.notifyDataSetChanged()
+            progress_bar.visibility = View.GONE
         }
-        var actionReload = intent.getIntExtra(ACTION_RELOAD, 0)
-        if (actionReload==1){
+
+        if (AppPreferences.indexPlaying != -1) {
             handleLayoutPlay(ACTION_START)
-            setupAdapter()
-            AppPreferences.isReloadMain = true
-        }else{
-            setupAdapter()
-            if (!AppPreferences.isReloadMain){
-                requestPermisssion()
-            }
         }
 
         btn_play_or_pause.setOnClickListener {
@@ -123,7 +123,7 @@ class MainActivity : AppCompatActivity() {
             intentService.putExtra(ACTION_TO_SERVICE, ACTION_PREVIOUS)
             startService(intentService)
         }
-        layout_title.setOnClickListener{
+        layout_title.setOnClickListener {
             var intent = Intent(this, PlayMusicActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
@@ -150,7 +150,6 @@ class MainActivity : AppCompatActivity() {
         }
 
     }
-
 
 
     private fun setupAdapter() {
@@ -243,8 +242,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun searchByVoice(s: String) {
-        when(s){
-            "vi"->{
+        when (s) {
+            "vi" -> {
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                 intent.putExtra(
                     RecognizerIntent.EXTRA_LANGUAGE_MODEL,
@@ -254,11 +253,15 @@ class MainActivity : AppCompatActivity() {
                 intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Nói gì đó đi: ")
                 try {
                     searcByvoice.launch(intent)
-                }catch (ex:Exception){
-                    Toast.makeText(this@MainActivity, "Gặp lỗi khi sử dụng chức năng này", Toast.LENGTH_SHORT).show()
+                } catch (ex: Exception) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Gặp lỗi khi sử dụng chức năng này",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
-            "en"->{
+            "en" -> {
 //                textToSpeech = TextToSpeech(this@MainActivity) { status: Int ->
 //                    if (status != TextToSpeech.ERROR) {
 //                        textToSpeech.language = Locale(s)
@@ -275,8 +278,12 @@ class MainActivity : AppCompatActivity() {
                 intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Say something: ")
                 try {
                     searcByvoice.launch(intent)
-                }catch (ex:Exception){
-                    Toast.makeText(this@MainActivity, "Error when use this function", Toast.LENGTH_SHORT).show()
+                } catch (ex: Exception) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Error when use this function",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }
@@ -284,10 +291,10 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-
     override fun onDestroy() {
         super.onDestroy()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
+        AppPreferences.isLoaded = false
     }
 
 
@@ -318,9 +325,6 @@ class MainActivity : AppCompatActivity() {
                     PERMISSION_REQUEST
                 )
             }
-        } else {
-            listSong.addAll(getAudio(this))
-            rcv_songs.adapter?.notifyDataSetChanged()
         }
     }
 
@@ -337,8 +341,11 @@ class MainActivity : AppCompatActivity() {
                         "Access permission read external success",
                         Toast.LENGTH_SHORT
                     ).show()
+                    progress_bar.visibility = View.VISIBLE
                     listSong.addAll(getAudio(this))
                     rcv_songs.adapter?.notifyDataSetChanged()
+                    progress_bar.visibility = View.GONE
+                    AppPreferences.isLoaded = true
                 } else {
                     Toast.makeText(
                         this,
