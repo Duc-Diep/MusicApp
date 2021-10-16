@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    tools:context=".activities.HomeActivity">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <RelativeLayout
+            android:id="@+id/layout_search"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:layout_margin="5dp">
+            <ImageView
+                android:id="@+id/btn_back"
+                android:visibility="gone"
+                android:padding="7dp"
+                android:src="@drawable/ic_back_arrow_back_24"
+                android:layout_width="50dp"
+                android:layout_height="50dp"/>
+            <EditText
+                android:id="@+id/edt_search"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_toRightOf="@id/btn_back"
+                android:layout_toLeftOf="@id/btn_mic"
+                android:background="@drawable/layout_search"
+                android:drawableLeft="@drawable/ic_baseline_search_24"
+                android:hint="Tìm kiếm"
+                android:paddingLeft="10dp" />
+
+            <ImageView
+                android:id="@+id/btn_mic"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_alignParentRight="true"
+                android:padding="10dp"
+                android:src="@drawable/ic_baseline_mic_24" />
+        </RelativeLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rcv_search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/layout_search"
+            android:visibility="gone" />
+
+        <RelativeLayout
+            android:id="@+id/layout_slide"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_below="@id/layout_search">
+
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/view_pager_slide"
+                android:background="@drawable/bgr_slide"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="15dp" />
+
+            <me.relex.circleindicator.CircleIndicator3
+                android:id="@+id/circle_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="30dp"
+                android:layout_marginBottom="30dp"
+                android:layout_alignParentBottom="true"
+                android:layout_centerHorizontal="true"
+                app:ci_drawable="@drawable/bgr_indicator" />
+        </RelativeLayout>
+        <RelativeLayout
+            android:id="@+id/layout_title_top_song"
+            android:layout_below="@id/layout_slide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <TextView
+                android:id="@+id/tv_top_song"
+                android:text="@string/top_song"
+                android:textSize="25dp"
+                android:textColor="@color/black"
+                android:layout_marginLeft="20dp"
+                android:layout_marginBottom="5dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+            <ImageView
+                android:src="@drawable/ic_baseline_arrow_forward_ios_24"
+                android:layout_toRightOf="@id/tv_top_song"
+                android:layout_centerVertical="true"
+                android:padding="5dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </RelativeLayout>
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rcv_top_songs"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            android:orientation="horizontal"
+            android:layout_below="@id/layout_title_top_song"
+            android:layout_width="wrap_content"
+            android:layout_height="230dp"/>
+    </RelativeLayout>
+
+</ScrollView>

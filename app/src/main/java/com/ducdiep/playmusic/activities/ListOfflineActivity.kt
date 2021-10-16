@@ -1,15 +1,9 @@
 package com.ducdiep.playmusic.activities
 
-import android.Manifest
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.content.pm.PackageManager
+import android.content.*
 import android.os.Bundle
 import android.os.Handler
 import android.speech.RecognizerIntent
-import android.speech.tts.TextToSpeech
 import android.text.Editable
 import android.text.TextUtils
 import android.text.TextWatcher
@@ -18,22 +12,20 @@ import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.adapters.SongAdapter
 import com.ducdiep.playmusic.app.AppPreferences
-import com.ducdiep.playmusic.app.MyApplication.Companion.listSong
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.config.*
-import com.ducdiep.playmusic.models.Song
+import com.ducdiep.playmusic.models.songoffline.SongOffline
 import com.ducdiep.playmusic.services.MusicService
-import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_list_offline.*
 import java.util.*
 import kotlin.collections.ArrayList
 
-class MainActivity : AppCompatActivity() {
-    lateinit var mSong: Song
+class ListOfflineActivity : AppCompatActivity() {
+    lateinit var mSongOffline: SongOffline
     lateinit var songAdapter: SongAdapter
     private val searcByvoice =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -50,14 +42,14 @@ class MainActivity : AppCompatActivity() {
             var action = bundle.getInt(ACTION)
             handleLayoutPlay(action)
         }
-
     }
+
 
     var handleSeach = Handler()
     val runSearch = Runnable {
         var s = edt_search.text.toString()
-        var listTemp = ArrayList<Song>()
-        for (element in listSong) {
+        var listTemp = ArrayList<SongOffline>()
+        for (element in listSongOffline) {
             if (element.name.toLowerCase()
                     .contains(s.toLowerCase()) || element.artist.toLowerCase()
                     .contains(
@@ -67,11 +59,11 @@ class MainActivity : AppCompatActivity() {
                 listTemp.add(element)
             }
         }
-        songAdapter = SongAdapter(this@MainActivity, listTemp)
+        songAdapter = SongAdapter(this@ListOfflineActivity, listTemp)
         songAdapter.setOnClickItem {
-            AppPreferences.indexPlaying = listSong.indexOf(it)
+            AppPreferences.indexPlaying = listSongOffline.indexOf(it)
             playMusic()
-            var intent = Intent(this@MainActivity, PlayMusicActivity::class.java)
+            var intent = Intent(this@ListOfflineActivity, PlayMusicActivity::class.java)
             startActivity(intent)
         }
         rcv_songs.adapter = songAdapter
@@ -79,24 +71,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_list_offline)
         AppPreferences.init(this)
         supportActionBar?.hide()
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
 
         setupAdapter()
-        requestPermisssion()
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED&&!AppPreferences.isLoaded
-        ){
-            progress_bar.visibility = View.VISIBLE
-            listSong.addAll(getAudio(this))
-            rcv_songs.adapter?.notifyDataSetChanged()
-            progress_bar.visibility = View.GONE
-        }
 
         if (AppPreferences.indexPlaying != -1) {
             handleLayoutPlay(ACTION_START)
@@ -113,15 +94,12 @@ class MainActivity : AppCompatActivity() {
             sendActionToService(ACTION_CLEAR)
         }
         btn_next.setOnClickListener {
-            var intentService = Intent(this, MusicService::class.java)
-            intentService.putExtra(ACTION_TO_SERVICE, ACTION_NEXT)
-            startService(intentService)
+            sendActionToService(ACTION_NEXT)
 
         }
         btn_previous.setOnClickListener {
-            var intentService = Intent(this, MusicService::class.java)
-            intentService.putExtra(ACTION_TO_SERVICE, ACTION_PREVIOUS)
-            startService(intentService)
+            sendActionToService(ACTION_PREVIOUS)
+
         }
         layout_title.setOnClickListener {
             var intent = Intent(this, PlayMusicActivity::class.java)
@@ -151,14 +129,19 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    fun sendActionToService(action: Int) {
+        var intent = Intent(this, MusicService::class.java)
+        intent.putExtra(ACTION_TO_SERVICE, action)
+        startService(intent)
+    }
+
 
     private fun setupAdapter() {
-        songAdapter = SongAdapter(this, listSong)
+        songAdapter = SongAdapter(this, listSongOffline)
         songAdapter.setOnClickItem {
-            AppPreferences.indexPlaying = listSong.indexOf(it)
+            AppPreferences.indexPlaying = listSongOffline.indexOf(it)
             playMusic()
             var intent = Intent(this, PlayMusicActivity::class.java)
-
             startActivity(intent)
 
         }
@@ -166,9 +149,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun playMusic() {
-        var intent = Intent(this, MusicService::class.java)
-        intent.putExtra(ACTION_TO_SERVICE, ACTION_START)
-        startService(intent)
+        sendActionToService(ACTION_START)
     }
 
     private fun handleLayoutPlay(action: Int) {
@@ -190,15 +171,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showDetailMusic() {
-        mSong = listSong[AppPreferences.indexPlaying]
-        img_song.setImageBitmap(mSong.imageBitmap)
-        tv_name.text = mSong.name
+        mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+        img_song.setImageBitmap(mSongOffline.imageBitmap)
+        tv_name.text = mSongOffline.name
         tv_name.ellipsize = TextUtils.TruncateAt.MARQUEE
         tv_name.setHorizontallyScrolling(true)
         tv_name.isSelected = true
         tv_name.marqueeRepeatLimit = -1
         tv_name.isFocusable = true
-        tv_single.text = mSong.artist
+        tv_single.text = mSongOffline.artist
         tv_single.ellipsize = TextUtils.TruncateAt.MARQUEE
         tv_single.setHorizontallyScrolling(true)
         tv_single.isSelected = true
@@ -212,12 +193,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             btn_play_or_pause.setImageResource(R.drawable.play)
         }
-    }
-
-    fun sendActionToService(action: Int) {
-        var intent = Intent(this, MusicService::class.java)
-        intent.putExtra(ACTION_TO_SERVICE, action)
-        startService(intent)
     }
 
     //create popup
@@ -255,7 +230,7 @@ class MainActivity : AppCompatActivity() {
                     searcByvoice.launch(intent)
                 } catch (ex: Exception) {
                     Toast.makeText(
-                        this@MainActivity,
+                        this@ListOfflineActivity,
                         "Gặp lỗi khi sử dụng chức năng này",
                         Toast.LENGTH_SHORT
                     ).show()
@@ -280,7 +255,7 @@ class MainActivity : AppCompatActivity() {
                     searcByvoice.launch(intent)
                 } catch (ex: Exception) {
                     Toast.makeText(
-                        this@MainActivity,
+                        this@ListOfflineActivity,
                         "Error when use this function",
                         Toast.LENGTH_SHORT
                     ).show()
@@ -290,80 +265,15 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-
-    override fun onDestroy() {
-        super.onDestroy()
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
-        AppPreferences.isLoaded = false
-    }
-
-
-    fun requestPermisssion() {
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
-                    this,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                )
-            ) {
-                ActivityCompat.requestPermissions(
-                    this, arrayOf(
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    ),
-                    PERMISSION_REQUEST
-                )
-            } else {
-                ActivityCompat.requestPermissions(
-                    this, arrayOf(
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    ),
-                    PERMISSION_REQUEST
-                )
-            }
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        when (requestCode) {
-            PERMISSION_REQUEST -> {
-                if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(
-                        this,
-                        "Access permission read external success",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    progress_bar.visibility = View.VISIBLE
-                    listSong.addAll(getAudio(this))
-                    rcv_songs.adapter?.notifyDataSetChanged()
-                    progress_bar.visibility = View.GONE
-                    AppPreferences.isLoaded = true
-                } else {
-                    Toast.makeText(
-                        this,
-                        "Access permission read external denied",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return
-                }
-            }
-        }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    }
-
     override fun onResume() {
         super.onResume()
         setStatusButton()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
+    }
 
 }
 

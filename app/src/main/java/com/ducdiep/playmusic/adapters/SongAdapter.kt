@@ -1,7 +1,6 @@
 package com.ducdiep.playmusic.adapters
 
 import android.content.Context
-import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,13 +8,13 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.ducdiep.playmusic.R
-import com.ducdiep.playmusic.models.Song
+import com.ducdiep.playmusic.models.songoffline.SongOffline
 
-class SongAdapter(var context: Context, var listSong: ArrayList<Song>) :
+class SongAdapter(var context: Context, var listSongOffline: ArrayList<SongOffline>) :
     RecyclerView.Adapter<SongAdapter.SongViewHolder>() {
-    var onClick: ((Song) -> Unit)? = null
+    var onClick: ((SongOffline) -> Unit)? = null
 
-    fun setOnClickItem(callBack:(Song)->Unit){
+    fun setOnClickItem(callBack:(SongOffline)->Unit){
         onClick = callBack
     }
 
@@ -26,7 +25,7 @@ class SongAdapter(var context: Context, var listSong: ArrayList<Song>) :
     }
 
     override fun onBindViewHolder(holder: SongViewHolder, position: Int) {
-        var song = listSong[position]
+        var song = listSongOffline[position]
         holder.tvSongName.text = song.name
         holder.tvSongArtist.text = song.artist
         holder.imgSong.setImageBitmap(song.imageBitmap)
@@ -36,7 +35,7 @@ class SongAdapter(var context: Context, var listSong: ArrayList<Song>) :
     }
 
     override fun getItemCount(): Int {
-        return listSong.size
+        return listSongOffline.size
     }
 
     class SongViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

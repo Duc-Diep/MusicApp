@@ -1,10 +1,8 @@
 package com.ducdiep.playmusic.activities
 
-import android.Manifest
 import android.animation.ObjectAnimator
 import android.app.ActivityManager
 import android.content.*
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -17,15 +15,13 @@ import android.widget.SeekBar
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.app.AppPreferences
-import com.ducdiep.playmusic.app.MyApplication.Companion.listSong
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.config.*
-import com.ducdiep.playmusic.models.Song
+import com.ducdiep.playmusic.models.songoffline.SongOffline
 import com.ducdiep.playmusic.services.MusicService
-import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_play_music.*
 
 class PlayMusicActivity : AppCompatActivity() {
@@ -65,7 +61,7 @@ class PlayMusicActivity : AppCompatActivity() {
     }
 
     //variables
-    lateinit var mSong: Song
+    lateinit var mSongOffline: SongOffline
     lateinit var activityManager: ActivityManager
     lateinit var anim: ObjectAnimator
     var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -110,7 +106,7 @@ class PlayMusicActivity : AppCompatActivity() {
             if (taskInfo[0].taskInfo.numActivities == 2) {
                 finish()
             } else {
-                var intent = Intent(this, MainActivity::class.java)
+                var intent = Intent(this, ListOfflineActivity::class.java)
                 intent.putExtra(ACTION_RELOAD, 1)
                 startActivity(intent)
                 finish()
@@ -214,15 +210,15 @@ class PlayMusicActivity : AppCompatActivity() {
     }
 
     fun showDetailMusic() {
-        mSong = listSong[AppPreferences.indexPlaying]
-        img_music.setImageBitmap(mSong.imageBitmap)
-        tv_song_name.text = mSong.name
+        mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+        img_music.setImageBitmap(mSongOffline.imageBitmap)
+        tv_song_name.text = mSongOffline.name
         tv_song_name.ellipsize = TextUtils.TruncateAt.MARQUEE
         tv_song_name.setHorizontallyScrolling(true)
         tv_song_name.isSelected = true
         tv_song_name.marqueeRepeatLimit = -1
         tv_song_name.isFocusable = true
-        tv_artist.text = mSong.artist
+        tv_artist.text = mSongOffline.artist
         tv_artist.ellipsize = TextUtils.TruncateAt.MARQUEE
         tv_artist.setHorizontallyScrolling(true)
         tv_artist.isSelected = true
@@ -234,8 +230,8 @@ class PlayMusicActivity : AppCompatActivity() {
 
     //set up progressbar
     fun setProgress() {
-        mSong = listSong[AppPreferences.indexPlaying]
-        var duration = mSong.duration.toLong()
+        mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+        var duration = mSongOffline.duration
         tv_progress.text = timerConversion(currentPos.toLong())
         tv_duration.text = timerConversion(duration)
         seekbar_handle.max = duration.toInt()
@@ -291,7 +287,7 @@ class PlayMusicActivity : AppCompatActivity() {
         if (taskInfo[0].taskInfo.numActivities == 2) {
             super.onBackPressed()
         } else {
-            var intent = Intent(this, MainActivity::class.java)
+            var intent = Intent(this, ListOfflineActivity::class.java)
             intent.putExtra(ACTION_RELOAD, 1)
             startActivity(intent)
             finish()

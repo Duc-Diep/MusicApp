@@ -1,34 +1,31 @@
 package com.ducdiep.playmusic.services
 
-import android.Manifest
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.*
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.activities.PlayMusicActivity
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.CHANNEL_ID
-import com.ducdiep.playmusic.app.MyApplication.Companion.listSong
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.broadcasts.MyReceiver
 import com.ducdiep.playmusic.config.*
-import com.ducdiep.playmusic.models.Song
+import com.ducdiep.playmusic.models.songoffline.SongOffline
 
 
 class MusicService : Service() {
     var mediaPlayer: MediaPlayer? = null
-    lateinit var mSong: Song
-//    lateinit var mPlaybackState: PlaybackStateCompat
+    lateinit var mSongOffline: SongOffline
     var currentPos:Int = 0
+    var isOnline = false
     lateinit var mediaSession: MediaSessionCompat
 
     lateinit var listRandomed:ArrayList<Int>
@@ -47,13 +44,12 @@ class MusicService : Service() {
     override fun onCreate() {
         AppPreferences.init(this)
         reloadListRandom()
+        AppPreferences.isServiceRunning = true
         super.onCreate()
     }
 
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-
-        //xử lí action nhận từ broadcast or activity
         var actionMusic = intent.getIntExtra(ACTION_TO_SERVICE, 0)
         handleMusic(actionMusic)
         return START_NOT_STICKY
@@ -61,7 +57,7 @@ class MusicService : Service() {
 
     fun reloadListRandom(){
         listRandomed = ArrayList()
-        for (i in 0 until listSong!!.size){
+        for (i in 0 until listSongOffline!!.size){
             listRandomed.add(i)
         }
     }
@@ -72,7 +68,7 @@ class MusicService : Service() {
             mediaPlayer = MediaPlayer()
         }
         mediaPlayer!!.reset()
-        mediaPlayer!!.setDataSource(this, Uri.parse(listSong!![index].resource))
+        mediaPlayer!!.setDataSource(this, Uri.parse(listSongOffline!![index].resource))
         mediaPlayer!!.prepare()
         mediaPlayer?.start()
         AppPreferences.isPlaying = true
@@ -93,7 +89,7 @@ class MusicService : Service() {
             ACTION_PAUSE -> pauseMusic()
             ACTION_CLEAR -> {
                 sendActionToActivity(ACTION_CLEAR)
-                mediaPlayer?.release()
+                mediaPlayer?.stop()
                 stopSelf()
             }
             ACTION_NEXT -> {
@@ -106,7 +102,7 @@ class MusicService : Service() {
     }
 
     private fun startNewMusic() {
-        mSong = listSong!![AppPreferences.indexPlaying]
+        mSongOffline = listSongOffline!![AppPreferences.indexPlaying]
         startMusic(AppPreferences.indexPlaying)
         sendNotificationMedia(AppPreferences.indexPlaying)
     }
@@ -139,8 +135,8 @@ class MusicService : Service() {
             }
         } else {
             if (AppPreferences.indexPlaying == 0) {
-                startMusic(listSong!!.size - 1)
-                AppPreferences.indexPlaying = listSong!!.size - 1
+                startMusic(listSongOffline!!.size - 1)
+                AppPreferences.indexPlaying = listSongOffline!!.size - 1
             } else {
                 startMusic(AppPreferences.indexPlaying - 1)
                 AppPreferences.indexPlaying = AppPreferences.indexPlaying - 1
@@ -162,7 +158,7 @@ class MusicService : Service() {
 
 
         } else {
-            if (AppPreferences.indexPlaying == listSong!!.size - 1) {
+            if (AppPreferences.indexPlaying == listSongOffline!!.size - 1) {
                 startMusic(0)
                 AppPreferences.indexPlaying = 0
             } else {
@@ -241,7 +237,7 @@ class MusicService : Service() {
 
     fun sendNotificationMedia(index: Int) {
         mediaSession = MediaSessionCompat(this, "tag")
-        var song = listSong!![index]
+        var song = listSongOffline!![index]
         //pending intent mở app khi bấm vào notification
         var intent = Intent(this, PlayMusicActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -347,14 +343,7 @@ class MusicService : Service() {
     }
 
 
-    override fun onDestroy() {
-        if (mediaPlayer != null) {
-            mediaPlayer!!.release()
-            mediaPlayer = null
-        }
-        reloadData()
-        super.onDestroy()
-    }
+
 
     //gửi data qua activity để hiện thị trên UI
     fun sendActionToActivity(action: Int) {
@@ -364,5 +353,13 @@ class MusicService : Service() {
         bundle.putInt(CURRENT_POSITION,currentPos)
         intent.putExtras(bundle)
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+    override fun onDestroy() {
+        if (mediaPlayer != null) {
+            mediaPlayer!!.release()
+            mediaPlayer = null
+        }
+        reloadData()
+        super.onDestroy()
     }
 }

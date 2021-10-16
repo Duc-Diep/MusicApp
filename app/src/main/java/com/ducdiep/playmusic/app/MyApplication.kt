@@ -4,21 +4,20 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
-import com.ducdiep.playmusic.config.loadDefaultMusic
-import com.ducdiep.playmusic.models.Song
+import com.ducdiep.playmusic.models.songoffline.SongOffline
 
 public const val CHANNEL_ID = "channel_id_music_app"
 public const val CHANNEL_NAME = "channel_name_music_app"
 
 class MyApplication : Application() {
     companion object{
-        lateinit var listSong:ArrayList<Song>
+        var listSongOffline:ArrayList<SongOffline> = ArrayList()
     }
 
     override fun onCreate() {
         super.onCreate()
         createChannelNotifycation()
-        listSong = loadDefaultMusic(this)
+
     }
 
     private fun createChannelNotifycation() {
@@ -34,6 +33,5 @@ class MyApplication : Application() {
                 manager.createNotificationChannel(channel)
             }
         }
-
     }
 }

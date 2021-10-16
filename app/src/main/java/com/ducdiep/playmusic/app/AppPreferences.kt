@@ -13,7 +13,7 @@ object AppPreferences {
     private val IS_SHUFFLE = Pair("shuffle",false)
     private val IS_PLAYING = Pair("playing",false)
     private val IS_REPEAT_ONE = Pair("repeatone",false)
-    private val IS_LOADED = Pair("isLoaded",false)
+    private val IS_SERVICE_RUNNING = Pair("isServiceRunning",false)
 
     fun init(context: Context?) {
         preferences = context?.getSharedPreferences(NAME, MODE)!!
@@ -44,9 +44,9 @@ object AppPreferences {
         set(value) = preferences.edit {
             it.putBoolean(IS_PLAYING.first, value)
         }
-    var isLoaded: Boolean
-        get() = preferences.getBoolean(IS_LOADED.first, IS_LOADED.second)
+    var isServiceRunning: Boolean
+        get() = preferences.getBoolean(IS_SERVICE_RUNNING.first, IS_SERVICE_RUNNING.second)
         set(value) = preferences.edit {
-            it.putBoolean(IS_LOADED.first, value)
+            it.putBoolean(IS_SERVICE_RUNNING.first, value)
         }
 }
