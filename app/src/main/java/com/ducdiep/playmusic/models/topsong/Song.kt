@@ -1,13 +1,9 @@
 package com.ducdiep.playmusic.models.topsong
 
-import com.ducdiep.playmusic.models.topsong.Album
-import com.ducdiep.playmusic.models.topsong.ArtistX
-import com.ducdiep.playmusic.models.topsong.ArtistXX
-
 data class Song(
     val album: Album,
     val artist: ArtistX,
-    val artists: List<ArtistXX>,
+    val artists: List<Artist>,
     val artists_names: String,
     val code: String,
     val content_owner: Int,
