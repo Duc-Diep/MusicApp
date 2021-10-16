@@ -28,11 +28,7 @@ class SlideAdapter(var context: Context,var listSongOnline: List<Song>) : Recycl
 
     override fun onBindViewHolder(holder: SlideViewHolder, position: Int) {
         var song = listSongOnline[position]
-        try {
-            Glide.with(context).load("${song.album.thumbnail_medium}").into(holder.image)
-        }catch (ex:Exception){
             Glide.with(context).load("${song.thumbnail}").into(holder.image)
-        }
         holder.itemView.setOnClickListener {
             onClick?.invoke(song)
         }

@@ -284,7 +284,7 @@ class PlayMusicActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onBackPressed() {
         val taskInfo = activityManager.appTasks
-        if (taskInfo[0].taskInfo.numActivities == 2) {
+        if (taskInfo[0].taskInfo.numActivities >2) {
             super.onBackPressed()
         } else {
             var intent = Intent(this, ListOfflineActivity::class.java)
