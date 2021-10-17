@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">PlayMusic</string>
     <string name="top_song">Bảng xếp hạng</string>
+    <string name="recommend_song">Danh sách đề cử</string>
 </resources>

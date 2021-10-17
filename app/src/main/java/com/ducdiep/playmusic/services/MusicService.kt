@@ -4,6 +4,8 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.*
@@ -16,16 +18,19 @@ import com.ducdiep.playmusic.activities.PlayMusicActivity
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.CHANNEL_ID
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.broadcasts.MyReceiver
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.songoffline.SongOffline
+import com.ducdiep.playmusic.models.topsong.Song
+import java.net.URL
 
 
 class MusicService : Service() {
     var mediaPlayer: MediaPlayer? = null
     lateinit var mSongOffline: SongOffline
+    lateinit var mSongOnline: Song
     var currentPos:Int = 0
-    var isOnline = false
     lateinit var mediaSession: MediaSessionCompat
 
     lateinit var listRandomed:ArrayList<Int>
@@ -62,20 +67,41 @@ class MusicService : Service() {
         }
     }
 
-    private fun startMusic(index: Int) {
+    private fun startMusicOffline(index: Int) {
         listRandomed.remove(index)
         if (mediaPlayer == null) {
             mediaPlayer = MediaPlayer()
         }
         mediaPlayer!!.reset()
-        mediaPlayer!!.setDataSource(this, Uri.parse(listSongOffline!![index].resource))
+        mediaPlayer!!.setDataSource(this, Uri.parse(listSongOffline[index].resource))
         mediaPlayer!!.prepare()
         mediaPlayer?.start()
         AppPreferences.isPlaying = true
         sendActionToActivity(ACTION_START)
         mediaPlayer!!.setOnCompletionListener {
             if (AppPreferences.isRepeatOne){
-                startMusic(AppPreferences.indexPlaying)
+                startMusicOffline(AppPreferences.indexPlaying)
+            }else{
+                playNextMusic()
+            }
+        }
+    }
+    private fun startMusicOnline(index: Int) {
+        if (mediaPlayer == null) {
+            mediaPlayer = MediaPlayer()
+        }
+        mediaPlayer!!.reset()
+        mediaPlayer!!.setDataSource(
+            this,
+            Uri.parse("http://api.mp3.zing.vn/api/streaming/${listSongOnline[index].type}/${listSongOnline[index].id}/128")
+        )
+        mediaPlayer!!.prepare()
+        mediaPlayer?.start()
+        AppPreferences.isPlaying = true
+        sendActionToActivity(ACTION_START)
+        mediaPlayer!!.setOnCompletionListener {
+            if (AppPreferences.isRepeatOne){
+                startMusicOnline(AppPreferences.indexPlaying)
             }else{
                 playNextMusic()
             }
@@ -102,68 +128,96 @@ class MusicService : Service() {
     }
 
     private fun startNewMusic() {
-        mSongOffline = listSongOffline!![AppPreferences.indexPlaying]
-        startMusic(AppPreferences.indexPlaying)
-        sendNotificationMedia(AppPreferences.indexPlaying)
+        if (AppPreferences.isOnline){
+            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+            startMusicOnline(AppPreferences.indexPlaying)
+            sendNotificationMedia(AppPreferences.indexPlaying)
+        }else{
+            mSongOffline = listSongOffline!![AppPreferences.indexPlaying]
+            startMusicOffline(AppPreferences.indexPlaying)
+            sendNotificationMedia(AppPreferences.indexPlaying)
+        }
+
     }
 
     fun playPreviousMusic() {
-        if (AppPreferences.isShuffle) {
-            if (listPreviousRandom.size>0){
-                if (listPreviousRandom.size==1){
-                    var index = listPreviousRandom.size-1
-                    startMusic(listPreviousRandom[index])
-                    AppPreferences.indexPlaying = listPreviousRandom[index]
-                    listPreviousRandom.removeLastOrNull()
-                }else{
-                    var index = listPreviousRandom.size-2
-                    startMusic(listPreviousRandom[index])
-                    AppPreferences.indexPlaying = listPreviousRandom[index]
-                    listPreviousRandom.removeLastOrNull()
-                }
-
-            }else{
-                if (listRandomed.size==0){
-                    reloadListRandom()
-                }
-                var rd = (0 until listRandomed!!.size).random()
-                AppPreferences.indexPlaying = listRandomed[rd]
-                startMusic(listRandomed[rd])
-                if (listRandomed.size==0){
-                    reloadListRandom()
-                }
-            }
-        } else {
+        if (AppPreferences.isOnline){
             if (AppPreferences.indexPlaying == 0) {
-                startMusic(listSongOffline!!.size - 1)
-                AppPreferences.indexPlaying = listSongOffline!!.size - 1
+                startMusicOnline(listSongOnline.size - 1)
+                AppPreferences.indexPlaying = listSongOnline.size - 1
             } else {
-                startMusic(AppPreferences.indexPlaying - 1)
+                startMusicOnline(AppPreferences.indexPlaying - 1)
                 AppPreferences.indexPlaying = AppPreferences.indexPlaying - 1
             }
+        }else{
+            if (AppPreferences.isShuffle) {
+                if (listPreviousRandom.size>0){
+                    if (listPreviousRandom.size==1){
+                        var index = listPreviousRandom.size-1
+                        startMusicOffline(listPreviousRandom[index])
+                        AppPreferences.indexPlaying = listPreviousRandom[index]
+                        listPreviousRandom.removeLastOrNull()
+                    }else{
+                        var index = listPreviousRandom.size-2
+                        startMusicOffline(listPreviousRandom[index])
+                        AppPreferences.indexPlaying = listPreviousRandom[index]
+                        listPreviousRandom.removeLastOrNull()
+                    }
+
+                }else{
+                    if (listRandomed.size==0){
+                        reloadListRandom()
+                    }
+                    var rd = (0 until listRandomed!!.size).random()
+                    AppPreferences.indexPlaying = listRandomed[rd]
+                    startMusicOffline(listRandomed[rd])
+                    if (listRandomed.size==0){
+                        reloadListRandom()
+                    }
+                }
+            } else {
+                if (AppPreferences.indexPlaying == 0) {
+                    startMusicOffline(listSongOffline!!.size - 1)
+                    AppPreferences.indexPlaying = listSongOffline!!.size - 1
+                } else {
+                    startMusicOffline(AppPreferences.indexPlaying - 1)
+                    AppPreferences.indexPlaying = AppPreferences.indexPlaying - 1
+                }
+            }
         }
+
         sendNotificationMedia(AppPreferences.indexPlaying)
         sendActionToActivity(ACTION_PREVIOUS)
     }
 
     fun playNextMusic() {
-        if (AppPreferences.isShuffle) {
-            if (listRandomed.size==0){
-                reloadListRandom()
-            }
-            var rd = (0 until listRandomed!!.size).random()
-            AppPreferences.indexPlaying = listRandomed[rd]
-            listPreviousRandom.add(listRandomed[rd])
-            startMusic(listRandomed[rd])
-
-
-        } else {
-            if (AppPreferences.indexPlaying == listSongOffline!!.size - 1) {
-                startMusic(0)
+        if (AppPreferences.isOnline){
+            if (AppPreferences.indexPlaying == listSongOnline.size - 1) {
+                startMusicOnline(0)
                 AppPreferences.indexPlaying = 0
             } else {
-                startMusic(AppPreferences.indexPlaying + 1)
+                startMusicOnline(AppPreferences.indexPlaying + 1)
                 AppPreferences.indexPlaying = AppPreferences.indexPlaying + 1
+            }
+        }else{
+            if (AppPreferences.isShuffle) {
+                if (listRandomed.size==0){
+                    reloadListRandom()
+                }
+                var rd = (0 until listRandomed.size).random()
+                AppPreferences.indexPlaying = listRandomed[rd]
+                listPreviousRandom.add(listRandomed[rd])
+                startMusicOffline(listRandomed[rd])
+
+
+            } else {
+                if (AppPreferences.indexPlaying == listSongOffline.size - 1) {
+                    startMusicOffline(0)
+                    AppPreferences.indexPlaying = 0
+                } else {
+                    startMusicOffline(AppPreferences.indexPlaying + 1)
+                    AppPreferences.indexPlaying = AppPreferences.indexPlaying + 1
+                }
             }
         }
 
@@ -237,7 +291,26 @@ class MusicService : Service() {
 
     fun sendNotificationMedia(index: Int) {
         mediaSession = MediaSessionCompat(this, "tag")
-        var song = listSongOffline!![index]
+        var bitmap:Bitmap?
+        var name:String
+        var artist:String
+        if (AppPreferences.isOnline){
+            var songOn = listSongOnline[index]
+            bitmap = try {
+                val url = URL(songOn.thumbnail)
+                BitmapFactory.decodeStream(url.openConnection().getInputStream())
+            }catch (ex:Exception){
+                null
+            }
+            name = songOn.name
+            artist = songOn.artists_names
+        }else{
+            var songOff = listSongOffline[index]
+            bitmap = songOff.imageBitmap
+            name = songOff.name
+            artist = songOff.artist
+
+        }
         //pending intent mở app khi bấm vào notification
         var intent = Intent(this, PlayMusicActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -269,9 +342,9 @@ class MusicService : Service() {
                     .setMediaSession(mediaSession.sessionToken)
             )
             .setSmallIcon(R.drawable.music_logo)
-            .setLargeIcon(song.imageBitmap)
-            .setContentText(song.artist)
-            .setContentTitle(song.name)
+            .setLargeIcon(bitmap)
+            .setContentText(name)
+            .setContentTitle(artist)
             .setContentIntent(pendingIntent)
 
         if (AppPreferences.isPlaying) {
@@ -350,7 +423,7 @@ class MusicService : Service() {
         var intent = Intent(ACTION_SEND_TO_ACTIVITY)
         var bundle = Bundle()
         bundle.putInt(ACTION, action)
-        bundle.putInt(CURRENT_POSITION,currentPos)
+        bundle.putInt(CURRENT_POSITION, currentPos)
         intent.putExtras(bundle)
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }

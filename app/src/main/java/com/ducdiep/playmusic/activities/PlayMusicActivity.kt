@@ -16,11 +16,15 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.bumptech.glide.Glide
+import com.bumptech.glide.RequestManager
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.songoffline.SongOffline
+import com.ducdiep.playmusic.models.topsong.Song
 import com.ducdiep.playmusic.services.MusicService
 import kotlinx.android.synthetic.main.activity_play_music.*
 
@@ -62,7 +66,8 @@ class PlayMusicActivity : AppCompatActivity() {
 
     //variables
     lateinit var mSongOffline: SongOffline
-    lateinit var activityManager: ActivityManager
+    lateinit var mSongOnline: Song
+    lateinit var glide:RequestManager
     lateinit var anim: ObjectAnimator
     var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -81,9 +86,10 @@ class PlayMusicActivity : AppCompatActivity() {
         setContentView(R.layout.activity_play_music)
         supportActionBar?.hide()
         AppPreferences.init(this)
-
+        glide = Glide.with(this)
         setStatusButton()
-        activityManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
+        showDetailMusic()
+
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
         if (AppPreferences.isShuffle) {
@@ -92,7 +98,6 @@ class PlayMusicActivity : AppCompatActivity() {
         if (AppPreferences.isRepeatOne) {
             btn_handle_repeat.setImageResource(R.drawable.ic_baseline_repeat_one_50)
         }
-        showDetailMusic()
 
         anim = ObjectAnimator.ofFloat(img_music, "rotation", 0f, 360f)
         anim.interpolator = LinearInterpolator()
@@ -100,17 +105,11 @@ class PlayMusicActivity : AppCompatActivity() {
         anim.repeatCount = 1000
         anim.repeatMode = ObjectAnimator.RESTART
         anim.start()
+
+
         //set click button
         btn_back.setOnClickListener {
-            val taskInfo = activityManager.appTasks
-            if (taskInfo[0].taskInfo.numActivities == 2) {
-                finish()
-            } else {
-                var intent = Intent(this, ListOfflineActivity::class.java)
-                intent.putExtra(ACTION_RELOAD, 1)
-                startActivity(intent)
-                finish()
-            }
+            finish()
         }
         btn_handle_play_or_pause.setOnClickListener {
             if (AppPreferences.isPlaying) {
@@ -210,28 +209,37 @@ class PlayMusicActivity : AppCompatActivity() {
     }
 
     fun showDetailMusic() {
-        mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-        img_music.setImageBitmap(mSongOffline.imageBitmap)
-        tv_song_name.text = mSongOffline.name
-        tv_song_name.ellipsize = TextUtils.TruncateAt.MARQUEE
-        tv_song_name.setHorizontallyScrolling(true)
-        tv_song_name.isSelected = true
-        tv_song_name.marqueeRepeatLimit = -1
-        tv_song_name.isFocusable = true
-        tv_artist.text = mSongOffline.artist
-        tv_artist.ellipsize = TextUtils.TruncateAt.MARQUEE
-        tv_artist.setHorizontallyScrolling(true)
-        tv_artist.isSelected = true
-        tv_artist.marqueeRepeatLimit = -1
-        tv_artist.isFocusable = true
-        img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+        if (AppPreferences.isOnline){
+            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+            glide.load(mSongOnline.thumbnail).into(img_music)
+            tv_song_name.text = mSongOnline.name
+            tv_song_name.isSelected = true
+            tv_artist.text = mSongOnline.artists_names
+            tv_artist.isSelected = true
+            img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+        }else{
+            mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+            img_music.setImageBitmap(mSongOffline.imageBitmap)
+            tv_song_name.text = mSongOffline.name
+            tv_song_name.isSelected = true
+            tv_artist.text = mSongOffline.artist
+            tv_artist.isSelected = true
+            img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+        }
+
     }
 
 
     //set up progressbar
     fun setProgress() {
-        mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-        var duration = mSongOffline.duration
+        var duration:Long
+        if(AppPreferences.isOnline){
+            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+            duration = (mSongOnline.duration*1000).toLong()
+        }else{
+            mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+            duration = mSongOffline.duration
+        }
         tv_progress.text = timerConversion(currentPos.toLong())
         tv_duration.text = timerConversion(duration)
         seekbar_handle.max = duration.toInt()
@@ -283,15 +291,16 @@ class PlayMusicActivity : AppCompatActivity() {
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onBackPressed() {
-        val taskInfo = activityManager.appTasks
-        if (taskInfo[0].taskInfo.numActivities >2) {
-            super.onBackPressed()
-        } else {
-            var intent = Intent(this, ListOfflineActivity::class.java)
-            intent.putExtra(ACTION_RELOAD, 1)
-            startActivity(intent)
-            finish()
-        }
+//        val taskInfo = activityManager.appTasks
+//        if (taskInfo[0].taskInfo.numActivities >2) {
+//            super.onBackPressed()
+//        } else {
+//            var intent = Intent(this, ListOfflineActivity::class.java)
+//            intent.putExtra(ACTION_RELOAD, 1)
+//            startActivity(intent)
+//            finish()
+//        }
+        super.onBackPressed()
     }
 
     override fun onDestroy() {

@@ -20,9 +20,8 @@ const val ACTION_NEXT = 6
 const val ACTION_PREVIOUS = 5
 const val PERMISSION_REQUEST = 7
 const val ACTION_RELOAD = "reload"
-const val SONG_OBJECT = "song"
-const val STATUS_PLAY = "status_play"
 const val ACTION = "action"
+const val IS_ONLINE = "isOnline"
 const val CURRENT_POSITION = "position"
 const val IMAGE = "image"
 const val INDEX = "index"
@@ -151,4 +150,5 @@ fun reloadData(){
     AppPreferences.indexPlaying=-1
     AppPreferences.isPlaying = false
     AppPreferences.isServiceRunning = false
+    AppPreferences.isOnline = false
 }

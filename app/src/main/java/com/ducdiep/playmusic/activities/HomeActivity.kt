@@ -16,8 +16,14 @@ import com.ducdiep.playmusic.adapters.SongOnlineAdapter
 import com.ducdiep.playmusic.adapters.TopSongHoriAdapter
 import com.ducdiep.playmusic.api.RetrofitInstance
 import com.ducdiep.playmusic.api.SongService
+import com.ducdiep.playmusic.app.AppPreferences
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
+import com.ducdiep.playmusic.config.ACTION_START
+import com.ducdiep.playmusic.config.ACTION_TO_SERVICE
+import com.ducdiep.playmusic.config.IS_ONLINE
 import com.ducdiep.playmusic.models.search.SongSearch
 import com.ducdiep.playmusic.models.topsong.Song
+import com.ducdiep.playmusic.services.MusicService
 import kotlinx.android.synthetic.main.activity_home.*
 import kotlinx.android.synthetic.main.activity_home.edt_search
 import kotlinx.android.synthetic.main.activity_list_offline.*
@@ -40,6 +46,7 @@ class HomeActivity : AppCompatActivity() {
             view_pager_slide.setCurrentItem(view_pager_slide.currentItem + 1, true)
         }
     }
+    //search
     var runSearch = Runnable {
         var key = edt_search.text.toString()
             GlobalScope.launch(Dispatchers.IO) {
@@ -72,6 +79,7 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
         setContentView(R.layout.activity_home)
+        AppPreferences.init(this)
         songService = RetrofitInstance.getInstance().create(SongService::class.java)
         songServiceSearch = RetrofitInstance.getInstanceSearch().create(SongService::class.java)
         edt_search.addTextChangedListener(object : TextWatcher {
@@ -127,6 +135,7 @@ class HomeActivity : AppCompatActivity() {
             }
         }
     }
+    //slide
     fun setUpSlide(){
         var list = listTopSong.take(5)
         var slideAdapter = SlideAdapter(this, list)
@@ -143,10 +152,16 @@ class HomeActivity : AppCompatActivity() {
             }
         })
     }
-
+    //adapter top 100 bai hat
     fun setupTopSongAdapter(){
         var topSongAdapter = TopSongHoriAdapter(this, listTopSong)
         topSongAdapter.setOnClickItem {
+            listSongOnline = listTopSong as ArrayList<Song>
+            AppPreferences.indexPlaying = it.position-1
+            AppPreferences.isOnline = true
+            var intent = Intent(this,PlayMusicActivity::class.java)
+            startActivity(intent)
+            sendActionToService(ACTION_START)
             Toast.makeText(this, "${it.name}", Toast.LENGTH_SHORT).show()
         }
         rcv_top_songs.adapter = topSongAdapter
@@ -155,6 +170,11 @@ class HomeActivity : AppCompatActivity() {
     private fun setupDataSearch(list: List<SongSearch>) {
         var songAdapter = SongOnlineAdapter(this, list)
         rcv_search.adapter = songAdapter
+    }
+    fun sendActionToService(action: Int) {
+        var intent = Intent(this, MusicService::class.java)
+        intent.putExtra(ACTION_TO_SERVICE, action)
+        startService(intent)
     }
 
 

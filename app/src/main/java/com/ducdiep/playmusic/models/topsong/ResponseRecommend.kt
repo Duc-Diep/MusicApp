@@ -1,6 +1,6 @@
 package com.ducdiep.playmusic.models.topsong
 
-data class ResponseTopSong(
-    val `data`: Data,
+data class ResponseRecommend(
+    val `data`: DataX,
     val msg: String
 )

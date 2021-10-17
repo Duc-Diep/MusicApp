@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.ducdiep.playmusic.models.songoffline.SongOffline
+import com.ducdiep.playmusic.models.topsong.Song
 
 public const val CHANNEL_ID = "channel_id_music_app"
 public const val CHANNEL_NAME = "channel_name_music_app"
@@ -12,6 +13,7 @@ public const val CHANNEL_NAME = "channel_name_music_app"
 class MyApplication : Application() {
     companion object{
         var listSongOffline:ArrayList<SongOffline> = ArrayList()
+        var listSongOnline:ArrayList<Song> = ArrayList()
     }
 
     override fun onCreate() {
