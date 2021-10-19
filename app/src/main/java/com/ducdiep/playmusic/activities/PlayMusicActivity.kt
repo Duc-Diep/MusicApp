@@ -49,6 +49,7 @@ class PlayMusicActivity : AppCompatActivity() {
     lateinit var songService: SongService
     lateinit var handler: Handler
     lateinit var runnable: Runnable
+    var isPrevious = false
 
     private val connection = object : ServiceConnection {
 
@@ -168,7 +169,8 @@ class PlayMusicActivity : AppCompatActivity() {
     }
 
     private fun setupRecommendSong() {
-        progress_bar_play.visibility = View.VISIBLE
+        if (AppPreferences.isOnline){
+            progress_bar_play.visibility = View.VISIBLE
             songService.getRecommend(mSongOnline.type,mSongOnline.id).enqueue(object :
                 Callback<ResponseRecommend> {
                 override fun onResponse(
@@ -178,9 +180,11 @@ class PlayMusicActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         var data = response.body()
                         listRecommend = data!!.data.items
-                        if (!listSongOnline.contains(listRecommend[0])) {
+                        if (!listSongOnline.contains(listRecommend[0])&&!isPrevious) {
                             listSongOnline.add(listRecommend[0])
+                            isPrevious = false
                         }
+
                         setupRecommendSongAdapter()
                         progress_bar_play.visibility = View.GONE
                     }
@@ -191,7 +195,7 @@ class PlayMusicActivity : AppCompatActivity() {
                 }
 
             })
-
+        }
     }
 
     private fun setupRecommendSongAdapter() {
@@ -239,14 +243,15 @@ class PlayMusicActivity : AppCompatActivity() {
             ACTION_PAUSE -> pauseMusic()
             ACTION_RESUME -> resumeMusic()
             ACTION_NEXT -> {
-                showDetailMusic()
+//                showDetailMusic()
                 seekbar_handle.progress = 0
-                setupRecommendSong()
+//                setupRecommendSong()
             }
             ACTION_PREVIOUS -> {
-                showDetailMusic()
+                isPrevious = true
+//                showDetailMusic()
                 seekbar_handle.progress = 0
-                setupRecommendSong()
+//                setupRecommendSong()
             }
             ACTION_CLEAR -> {
                 handler.removeCallbacks(runnable)

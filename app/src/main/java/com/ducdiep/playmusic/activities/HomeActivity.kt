@@ -1,11 +1,15 @@
 package com.ducdiep.playmusic.activities
 
+import android.app.AlertDialog
+import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
@@ -53,6 +57,8 @@ class HomeActivity : AppCompatActivity() {
 
     //search
     var runSearch = Runnable {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(edt_search.windowToken, 0)
         var key = edt_search.text.toString()
         songServiceSearch.getSearch("artist,song,key,code", 500, key)
             .enqueue(object : Callback<ResponseSearch> {
@@ -128,24 +134,24 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun getTopSong() {
-            songService.getTopSong().enqueue(object : Callback<ResponseTopSong> {
-                override fun onResponse(
-                    call: Call<ResponseTopSong>,
-                    response: Response<ResponseTopSong>
-                ) {
-                    if (response.isSuccessful) {
-                        var dataRespone = response.body()
-                        listTopSong = dataRespone?.data?.song!!
-                        setUpSlide()
-                        setupTopSongAdapter()
-                    }
+        songService.getTopSong().enqueue(object : Callback<ResponseTopSong> {
+            override fun onResponse(
+                call: Call<ResponseTopSong>,
+                response: Response<ResponseTopSong>
+            ) {
+                if (response.isSuccessful) {
+                    var dataRespone = response.body()
+                    listTopSong = dataRespone?.data?.song!!
+                    setUpSlide()
+                    setupTopSongAdapter()
                 }
+            }
 
-                override fun onFailure(call: Call<ResponseTopSong>, t: Throwable) {
-                    Toast.makeText(this@HomeActivity, "Lỗi khi tải bài hát", Toast.LENGTH_SHORT).show()
-                }
+            override fun onFailure(call: Call<ResponseTopSong>, t: Throwable) {
+                Toast.makeText(this@HomeActivity, "Lỗi khi tải bài hát", Toast.LENGTH_SHORT).show()
+            }
 
-            })
+        })
 
     }
 
@@ -224,5 +230,24 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         handler.postDelayed(runSlide, 2000)
+    }
+
+    override fun onBackPressed() {
+        if (btn_back.visibility == View.VISIBLE) {
+            listSearch = listOf()
+            setupDataSearch(listSearch)
+            btn_back.visibility = View.GONE
+            edt_search.clearFocus()
+            edt_search.setText("")
+            rcv_search.visibility = View.GONE
+        } else {
+            AlertDialog.Builder(this).setTitle("Xác nhận")
+                .setMessage("Bạn có chắc muốn thoát app không?")
+                .setPositiveButton("Có"
+                ) { dialog, which -> finish() }
+                .setNegativeButton("Không"
+                ) { dialog, which -> }
+                .show()
+        }
     }
 }
