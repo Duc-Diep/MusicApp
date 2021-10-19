@@ -5,14 +5,13 @@ import android.os.Bundle
 import android.os.Handler
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.adapters.SlideAdapter
-import com.ducdiep.playmusic.adapters.SongOnlineAdapter
+import com.ducdiep.playmusic.adapters.SongSearchAdapter
 import com.ducdiep.playmusic.adapters.TopSongHoriAdapter
 import com.ducdiep.playmusic.api.RetrofitInstance
 import com.ducdiep.playmusic.api.SongService
@@ -20,8 +19,10 @@ import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.config.ACTION_START
 import com.ducdiep.playmusic.config.ACTION_TO_SERVICE
-import com.ducdiep.playmusic.config.IS_ONLINE
+import com.ducdiep.playmusic.config.URL_THUMB
+import com.ducdiep.playmusic.models.search.ResponseSearch
 import com.ducdiep.playmusic.models.search.SongSearch
+import com.ducdiep.playmusic.models.topsong.ResponseTopSong
 import com.ducdiep.playmusic.models.topsong.Song
 import com.ducdiep.playmusic.services.MusicService
 import kotlinx.android.synthetic.main.activity_home.*
@@ -31,48 +32,53 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import retrofit2.awaitResponse
 
 class HomeActivity : AppCompatActivity() {
-    lateinit var songService:SongService
-    lateinit var songServiceSearch:SongService
-    lateinit var listTopSong:List<Song>
-    lateinit var listSearch:List<SongSearch>
+    lateinit var songService: SongService
+    lateinit var songServiceSearch: SongService
+    lateinit var listTopSong: List<Song>
+    lateinit var listSearch: List<SongSearch>
     var handler = Handler()
     var runSlide = Runnable {
-        if (view_pager_slide.currentItem==4){
+        if (view_pager_slide.currentItem == 4) {
             view_pager_slide.setCurrentItem(0, true)
-        }else{
+        } else {
             view_pager_slide.setCurrentItem(view_pager_slide.currentItem + 1, true)
         }
     }
+
     //search
     var runSearch = Runnable {
         var key = edt_search.text.toString()
-            GlobalScope.launch(Dispatchers.IO) {
-                var response = songServiceSearch.getSearch("artist,song,key,code", 500, key).awaitResponse()
-                if (response.isSuccessful){
-                    var data = response.body()
-                    withContext(Dispatchers.Main){
-                        try {
-                            listSearch = data?.data!![0].song
-                            setupDataSearch(listSearch)
-                            progressbar_search.visibility = View.GONE
-                        }catch (ex:Exception){
-                            Toast.makeText(
-                                this@HomeActivity,
-                                "Không tìm thấy bài hát này",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            progress_bar.visibility = View.GONE
-                        }
+        songServiceSearch.getSearch("artist,song,key,code", 500, key)
+            .enqueue(object : Callback<ResponseSearch> {
+                override fun onResponse(
+                    call: Call<ResponseSearch>,
+                    response: Response<ResponseSearch>
+                ) {
+                    if (response.isSuccessful) {
+                        var data = response.body()
+                        listSearch = data?.data!![0].song
+                        setupDataSearch(listSearch)
+                        progressbar_search.visibility = View.GONE
                     }
                 }
-            }
 
+                override fun onFailure(call: Call<ResponseSearch>, t: Throwable) {
+                    Toast.makeText(
+                        this@HomeActivity,
+                        "Không tìm thấy bài hát này",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    progress_bar.visibility = View.GONE
+                }
 
+            })
     }
-
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -114,7 +120,7 @@ class HomeActivity : AppCompatActivity() {
             rcv_search.visibility = View.GONE
         }
         cv_on_phone.setOnClickListener {
-            var intent = Intent(this,ListOfflineActivity::class.java)
+            var intent = Intent(this, ListOfflineActivity::class.java)
             startActivity(intent)
         }
 
@@ -122,21 +128,29 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun getTopSong() {
-        GlobalScope.launch(Dispatchers.IO) {
-            var response = songService.getTopSong().awaitResponse()
-            if (response.isSuccessful){
-                var dataRespone = response.body()
-                withContext(Dispatchers.Main){
-                    listTopSong = dataRespone?.data?.song!!
-                    setUpSlide()
-                    setupTopSongAdapter()
+            songService.getTopSong().enqueue(object : Callback<ResponseTopSong> {
+                override fun onResponse(
+                    call: Call<ResponseTopSong>,
+                    response: Response<ResponseTopSong>
+                ) {
+                    if (response.isSuccessful) {
+                        var dataRespone = response.body()
+                        listTopSong = dataRespone?.data?.song!!
+                        setUpSlide()
+                        setupTopSongAdapter()
+                    }
                 }
-//                Log.d("dataRes", "getTopSong: $dataRespone")
-            }
-        }
+
+                override fun onFailure(call: Call<ResponseTopSong>, t: Throwable) {
+                    Toast.makeText(this@HomeActivity, "Lỗi khi tải bài hát", Toast.LENGTH_SHORT).show()
+                }
+
+            })
+
     }
+
     //slide
-    fun setUpSlide(){
+    fun setUpSlide() {
         var list = listTopSong.take(5)
         var slideAdapter = SlideAdapter(this, list)
         slideAdapter.setOnClickItem {
@@ -152,14 +166,15 @@ class HomeActivity : AppCompatActivity() {
             }
         })
     }
+
     //adapter top 100 bai hat
-    fun setupTopSongAdapter(){
+    fun setupTopSongAdapter() {
         var topSongAdapter = TopSongHoriAdapter(this, listTopSong)
         topSongAdapter.setOnClickItem {
             listSongOnline = listTopSong as ArrayList<Song>
-            AppPreferences.indexPlaying = it.position-1
+            AppPreferences.indexPlaying = it.position - 1
             AppPreferences.isOnline = true
-            var intent = Intent(this,PlayMusicActivity::class.java)
+            var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)
             sendActionToService(ACTION_START)
             Toast.makeText(this, "${it.name}", Toast.LENGTH_SHORT).show()
@@ -168,9 +183,32 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun setupDataSearch(list: List<SongSearch>) {
-        var songAdapter = SongOnlineAdapter(this, list)
+        var songAdapter = SongSearchAdapter(this, list)
+        songAdapter.setOnClickItem {
+            listSongOnline.clear()
+            listSongOnline.add(
+                Song(
+                    it.artist,
+                    it.id,
+                    it.duration.toInt(),
+                    it.id,
+                    it.name,
+                    0,
+                    "$URL_THUMB${it.thumb}",
+                    it.name,
+                    "audio"
+                )
+            )
+            AppPreferences.indexPlaying = 0
+            AppPreferences.isOnline = true
+            var intent = Intent(this, PlayMusicActivity::class.java)
+            startActivity(intent)
+            sendActionToService(ACTION_START)
+            Toast.makeText(this, "${it.name}", Toast.LENGTH_SHORT).show()
+        }
         rcv_search.adapter = songAdapter
     }
+
     fun sendActionToService(action: Int) {
         var intent = Intent(this, MusicService::class.java)
         intent.putExtra(ACTION_TO_SERVICE, action)

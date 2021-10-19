@@ -1,14 +1,13 @@
 package com.ducdiep.playmusic.activities
 
 import android.animation.ObjectAnimator
-import android.app.ActivityManager
 import android.content.*
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
-import android.text.TextUtils
+import android.view.View
 import android.view.animation.AnimationUtils
 import android.view.animation.LinearInterpolator
 import android.widget.SeekBar
@@ -19,20 +18,35 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
 import com.ducdiep.playmusic.R
+import com.ducdiep.playmusic.adapters.SongOnlineAdapter
+import com.ducdiep.playmusic.adapters.SongSearchAdapter
+import com.ducdiep.playmusic.api.RetrofitInstance
+import com.ducdiep.playmusic.api.SongService
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.songoffline.SongOffline
+import com.ducdiep.playmusic.models.topsong.ResponseRecommend
 import com.ducdiep.playmusic.models.topsong.Song
 import com.ducdiep.playmusic.services.MusicService
 import kotlinx.android.synthetic.main.activity_play_music.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.awaitResponse
 
 class PlayMusicActivity : AppCompatActivity() {
     //set up bound service
     private lateinit var mService: MusicService
     private var mBound: Boolean = false
     var currentPos: Int = 0
+    lateinit var listRecommend:List<Song>
+    lateinit var songService: SongService
     lateinit var handler: Handler
     lateinit var runnable: Runnable
 
@@ -86,9 +100,11 @@ class PlayMusicActivity : AppCompatActivity() {
         setContentView(R.layout.activity_play_music)
         supportActionBar?.hide()
         AppPreferences.init(this)
+        songService = RetrofitInstance.getInstance().create(SongService::class.java)
         glide = Glide.with(this)
         setStatusButton()
         showDetailMusic()
+        setupRecommendSong()
 
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
@@ -149,7 +165,45 @@ class PlayMusicActivity : AppCompatActivity() {
             }
         }
 
+    }
 
+    private fun setupRecommendSong() {
+        progress_bar_play.visibility = View.VISIBLE
+            songService.getRecommend(mSongOnline.type,mSongOnline.id).enqueue(object :
+                Callback<ResponseRecommend> {
+                override fun onResponse(
+                    call: Call<ResponseRecommend>,
+                    response: Response<ResponseRecommend>
+                ) {
+                    if (response.isSuccessful) {
+                        var data = response.body()
+                        listRecommend = data!!.data.items
+                        if (!listSongOnline.contains(listRecommend[0])) {
+                            listSongOnline.add(listRecommend[0])
+                        }
+                        setupRecommendSongAdapter()
+                        progress_bar_play.visibility = View.GONE
+                    }
+                }
+
+                override fun onFailure(call: Call<ResponseRecommend>, t: Throwable) {
+                    Toast.makeText(this@PlayMusicActivity, "Có lỗi khi tải nhạc", Toast.LENGTH_SHORT).show()
+                }
+
+            })
+
+    }
+
+    private fun setupRecommendSongAdapter() {
+
+        var songOnlineAdapter = SongOnlineAdapter(this,listRecommend)
+        songOnlineAdapter.setOnClickItem {
+            listSongOnline.removeLastOrNull()
+            listSongOnline.add(it)
+            AppPreferences.indexPlaying = listSongOnline.size-1
+            mService.handleMusic(ACTION_START)
+        }
+        rcv_recommend_songs.adapter = songOnlineAdapter
     }
 
     private fun resumeMusic() {
@@ -180,16 +234,19 @@ class PlayMusicActivity : AppCompatActivity() {
                 if (mBound) {
                     setProgress()
                 }
+                setupRecommendSong()
             }
             ACTION_PAUSE -> pauseMusic()
             ACTION_RESUME -> resumeMusic()
             ACTION_NEXT -> {
                 showDetailMusic()
                 seekbar_handle.progress = 0
+                setupRecommendSong()
             }
             ACTION_PREVIOUS -> {
                 showDetailMusic()
                 seekbar_handle.progress = 0
+                setupRecommendSong()
             }
             ACTION_CLEAR -> {
                 handler.removeCallbacks(runnable)
@@ -211,7 +268,8 @@ class PlayMusicActivity : AppCompatActivity() {
     fun showDetailMusic() {
         if (AppPreferences.isOnline){
             mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-            glide.load(mSongOnline.thumbnail).into(img_music)
+            var linkImage = mSongOnline.thumbnail.replaceFirst("w94_r1x1_jpeg/","")
+            glide.load(linkImage).into(img_music)
             tv_song_name.text = mSongOnline.name
             tv_song_name.isSelected = true
             tv_artist.text = mSongOnline.artists_names

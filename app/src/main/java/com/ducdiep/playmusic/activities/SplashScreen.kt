@@ -14,7 +14,6 @@ import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.config.PERMISSION_REQUEST
 import com.ducdiep.playmusic.config.getAudio
-import com.ducdiep.playmusic.config.loadDefaultMusic
 
 class SplashScreen : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,36 +22,32 @@ class SplashScreen : AppCompatActivity() {
         setContentView(R.layout.activity_splash_screen)
         requestPermisssion()
     }
+
     fun requestPermisssion() {
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.READ_EXTERNAL_STORAGE
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
-                    this,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                )
-            ) {
-                ActivityCompat.requestPermissions(
-                    this, arrayOf(
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    ),
-                    PERMISSION_REQUEST
-                )
-            }
-        }else{
+            ActivityCompat.requestPermissions(
+                this, arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ),
+                PERMISSION_REQUEST
+            )
+
+        } else {
             listSongOffline = getAudio(this)
-            listSongOffline.addAll(0, loadDefaultMusic(this))
             Handler().postDelayed({
-                var intent = Intent(this,HomeActivity::class.java)
+                var intent = Intent(this, HomeActivity::class.java)
                 startActivity(intent)
                 finish()
-            },1000)
+            }, 1000)
 
         }
     }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -67,14 +62,12 @@ class SplashScreen : AppCompatActivity() {
                         Toast.LENGTH_SHORT
                     ).show()
                     listSongOffline = getAudio(this)
-                    listSongOffline.addAll(0, loadDefaultMusic(this))
                 } else {
                     Toast.makeText(
                         this,
                         "Access permission read external denied",
                         Toast.LENGTH_SHORT
                     ).show()
-                    listSongOffline.addAll(0, loadDefaultMusic(this))
                 }
                 Handler().postDelayed({
                     var intent = Intent(this, HomeActivity::class.java)

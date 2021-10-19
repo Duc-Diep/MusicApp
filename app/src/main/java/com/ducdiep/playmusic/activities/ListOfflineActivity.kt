@@ -14,7 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ducdiep.playmusic.R
-import com.ducdiep.playmusic.adapters.SongAdapter
+import com.ducdiep.playmusic.adapters.SongOfflineAdapter
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.config.*
@@ -26,7 +26,7 @@ import kotlin.collections.ArrayList
 
 class ListOfflineActivity : AppCompatActivity() {
     lateinit var mSongOffline: SongOffline
-    lateinit var songAdapter: SongAdapter
+    lateinit var songOfflineAdapter: SongOfflineAdapter
     private val searcByvoice =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode == RESULT_OK && it.data != null) {
@@ -59,14 +59,15 @@ class ListOfflineActivity : AppCompatActivity() {
                 listTemp.add(element)
             }
         }
-        songAdapter = SongAdapter(this@ListOfflineActivity, listTemp)
-        songAdapter.setOnClickItem {
+        songOfflineAdapter = SongOfflineAdapter(this@ListOfflineActivity, listTemp)
+        songOfflineAdapter.setOnClickItem {
             AppPreferences.indexPlaying = listSongOffline.indexOf(it)
+            AppPreferences.isOnline = false
             playMusic()
             var intent = Intent(this@ListOfflineActivity, PlayMusicActivity::class.java)
             startActivity(intent)
         }
-        rcv_songs.adapter = songAdapter
+        rcv_songs.adapter = songOfflineAdapter
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -137,15 +138,15 @@ class ListOfflineActivity : AppCompatActivity() {
 
 
     private fun setupAdapter() {
-        songAdapter = SongAdapter(this, listSongOffline)
-        songAdapter.setOnClickItem {
+        songOfflineAdapter = SongOfflineAdapter(this, listSongOffline)
+        songOfflineAdapter.setOnClickItem {
             AppPreferences.indexPlaying = listSongOffline.indexOf(it)
             playMusic()
             var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)
 
         }
-        rcv_songs.adapter = songAdapter
+        rcv_songs.adapter = songOfflineAdapter
     }
 
     private fun playMusic() {

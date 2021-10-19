@@ -34,65 +34,6 @@ const val URL_MUSIC = "http://api.mp3.zing.vn/api/streaming/"
 
 lateinit var bitmapDefault: Bitmap
 
-
-
-fun loadDefaultMusic(context: Context): ArrayList<SongOffline> {
-    try {
-        bitmapDefault = BitmapFactory.decodeResource(context.resources, R.drawable.musical_default)
-    }catch (ex:Exception){
-        Toast.makeText(context,"Ảnh quá nặng vượt mức cho phép",Toast.LENGTH_SHORT).show()
-    }
-    var listSong = ArrayList<SongOffline>()
-    listSong.apply {
-        add(
-            SongOffline(
-                "Key of truth",
-                "Sweet Arms",
-                233000,
-                bitmapDefault,
-                "android.resource://com.ducdiep.playmusic/" + R.raw.key_of_truth
-            )
-        )
-        add(
-            SongOffline(
-                "Date a live",
-                "Sweet Arms",
-                107000,
-                bitmapDefault,
-                "android.resource://com.ducdiep.playmusic/" + R.raw.date_a_live_spirit_pledge
-            )
-        )
-        add(
-            SongOffline(
-                "Ichinen Nikagetsu Hatsuka",
-                "BRIGHT",
-                313000,
-                bitmapDefault,
-                "android.resource://com.ducdiep.playmusic/" + R.raw.ichinen_nikagetsu_hatsuka
-            )
-        )
-        add(
-            SongOffline(
-                "Summertime",
-                "Cinnamons, Evening Cinema",
-                251000,
-                bitmapDefault,
-                "android.resource://com.ducdiep.playmusic/" + R.raw.summertime
-            )
-        )
-        add(
-            SongOffline(
-                "Xomu Lantern",
-                "Miyuri Remix",
-                211000,
-                bitmapDefault,
-                "android.resource://com.ducdiep.playmusic/" + R.raw.xomu_lantern
-            )
-        )
-    }
-    return listSong
-}
-
 fun getAudio(context: Context): ArrayList<SongOffline> {
     var listSong = ArrayList<SongOffline>()
     try {

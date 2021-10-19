@@ -12,6 +12,6 @@ interface SongService {
     fun getTopSong(): Call<ResponseTopSong>
     @GET("complete")
     fun getSearch(@Query("type") type:String,@Query("num") num:Int,@Query("query") query:String ):Call<ResponseSearch>
-    @GET("xhr/recommend?type=audio&id=ZW67OIA0")
+    @GET("xhr/recommend")
     fun getRecommend(@Query("type") type:String,@Query("id") id:String ):Call<ResponseRecommend>
 }

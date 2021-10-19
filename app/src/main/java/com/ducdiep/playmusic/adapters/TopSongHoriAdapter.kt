@@ -32,7 +32,8 @@ class TopSongHoriAdapter(var context:Context, var listSong:List<Song>):
         var song = listSong[position]
         holder.tvName.text = "${song.position}.${song.name}"
         holder.tvName.isSelected = true
-        Glide.with(context).load("${song.thumbnail}").into(holder.image)
+        var linkImage = song.thumbnail.replaceFirst("w94_r1x1_jpeg/","")
+        Glide.with(context).load("$linkImage").into(holder.image)
         holder.itemView.setOnClickListener {
             onClick?.invoke(song)
         }

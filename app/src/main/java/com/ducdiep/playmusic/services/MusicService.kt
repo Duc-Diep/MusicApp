@@ -23,6 +23,10 @@ import com.ducdiep.playmusic.broadcasts.MyReceiver
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.songoffline.SongOffline
 import com.ducdiep.playmusic.models.topsong.Song
+import kotlinx.coroutines.*
+import java.io.IOException
+import java.io.InputStream
+import java.net.HttpURLConnection
 import java.net.URL
 
 
@@ -289,28 +293,43 @@ class MusicService : Service() {
 //
 //    }
 
-    fun sendNotificationMedia(index: Int) {
-        mediaSession = MediaSessionCompat(this, "tag")
-        var bitmap:Bitmap?
-        var name:String
-        var artist:String
-        if (AppPreferences.isOnline){
-            var songOn = listSongOnline[index]
-            bitmap = try {
-                val url = URL(songOn.thumbnail)
-                BitmapFactory.decodeStream(url.openConnection().getInputStream())
-            }catch (ex:Exception){
+    //add
+    suspend fun getBitmapFromURL(src: String): Bitmap? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val url = URL(src)
+                val connection: HttpURLConnection = url.openConnection() as HttpURLConnection
+                connection.doInput = true
+                connection.connect()
+                val input: InputStream = connection.inputStream
+                BitmapFactory.decodeStream(input)
+            } catch (e: IOException) {
                 null
             }
-            name = songOn.name
-            artist = songOn.artists_names
+        }
+    }
+    fun sendNotificationMedia(index: Int) {
+        mediaSession = MediaSessionCompat(this, "tag")
+
+        if (AppPreferences.isOnline){
+            var songOn = listSongOnline[index]
+            var name = songOn.name
+            var artist = songOn.artists_names
+            GlobalScope.launch(Dispatchers.Main) {
+                var bitmap = getBitmapFromURL(songOn.thumbnail)
+                showNotification(bitmap, name, artist)
+            }
         }else{
             var songOff = listSongOffline[index]
-            bitmap = songOff.imageBitmap
-            name = songOff.name
-            artist = songOff.artist
-
+            var bitmap = songOff.imageBitmap
+            var name = songOff.name
+            var artist = songOff.artist
+            showNotification(bitmap, name, artist)
         }
+
+    }
+
+    private fun showNotification(bitmap:Bitmap?,name:String,artist:String) {
         //pending intent mở app khi bấm vào notification
         var intent = Intent(this, PlayMusicActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
