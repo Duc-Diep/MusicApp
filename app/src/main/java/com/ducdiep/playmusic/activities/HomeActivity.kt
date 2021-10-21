@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.ConnectivityManager
 import android.os.Bundle
 import android.os.Handler
 import android.speech.RecognizerIntent
@@ -47,7 +48,6 @@ import kotlinx.android.synthetic.main.activity_home.layout_playing
 import kotlinx.android.synthetic.main.activity_home.layout_title
 import kotlinx.android.synthetic.main.activity_home.tv_name
 import kotlinx.android.synthetic.main.activity_home.tv_single
-import kotlinx.android.synthetic.main.activity_list_offline.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -60,6 +60,18 @@ class HomeActivity : AppCompatActivity() {
             var action = bundle.getInt(ACTION)
             handleLayoutPlay(action)
         }
+    }
+    var networkBroadcast:BroadcastReceiver = object :BroadcastReceiver(){
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (ConnectivityManager.CONNECTIVITY_ACTION == intent?.action){
+                if (isNetworkAvailable(context!!)){
+                    loadData()
+                }else{
+                    loadData()
+                }
+            }
+        }
+
     }
     lateinit var mSongOffline: SongOffline
     lateinit var mSongOnline: Song
@@ -122,7 +134,7 @@ class HomeActivity : AppCompatActivity() {
         setContentView(R.layout.activity_home)
         init()
         setClick()
-        getTopSong()
+
     }
 
     private fun setClick() {
@@ -197,14 +209,31 @@ class HomeActivity : AppCompatActivity() {
             startActivity(intent)
         }
     }
+    fun loadData(){
+        if (!isNetworkAvailable(this)){
+            layout_search.visibility = View.GONE
+            layout_slide.visibility = View.GONE
+            layout_title_top_song.visibility = View.GONE
+            rcv_top_songs.visibility = View.GONE
+        }else{
+            layout_search.visibility = View.VISIBLE
+            layout_slide.visibility = View.VISIBLE
+            layout_title_top_song.visibility = View.VISIBLE
+            rcv_top_songs.visibility = View.VISIBLE
+            songService = RetrofitInstance.getInstance().create(SongService::class.java)
+            songServiceSearch = RetrofitInstance.getInstanceSearch().create(SongService::class.java)
+            getTopSong()
+        }
+    }
 
     fun init(){
+        loadData()
         AppPreferences.init(this)
         glide = Glide.with(this)
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
-        songService = RetrofitInstance.getInstance().create(SongService::class.java)
-        songServiceSearch = RetrofitInstance.getInstanceSearch().create(SongService::class.java)
+
+
     }
 
     private fun handleLayoutPlay(action: Int) {
@@ -440,8 +469,15 @@ class HomeActivity : AppCompatActivity() {
                 .show()
         }
     }
+
+    override fun onStart() {
+        super.onStart()
+        var intentfilter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+        registerReceiver(networkBroadcast,intentfilter)
+    }
     override fun onDestroy() {
         super.onDestroy()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
+        unregisterReceiver(networkBroadcast)
     }
 }

@@ -176,7 +176,7 @@ class PlayMusicActivity : AppCompatActivity() {
                 Toast.makeText(this, "Đã xóa bài hát khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show()
             }else{
                 sqlHelper.addSong(mSongOnline)
-                Toast.makeText(this, "Đã thêm bài hát khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Đã thêm bài hát vào danh sách yêu thích", Toast.LENGTH_SHORT).show()
                 img_favourite.setImageResource(R.drawable.like)
             }
         }
@@ -338,7 +338,7 @@ class PlayMusicActivity : AppCompatActivity() {
             img_music.setImageBitmap(mSongOffline.imageBitmap)
             tv_song_name.text = mSongOffline.name
             tv_song_name.isSelected = true
-            if (mSongOffline.genres!=null){
+            if (mSongOffline.genres!="null"){
                 tv_artist.text = "${mSongOffline.artist}   ${mSongOffline.genres}"
             }else{
                 tv_artist.text = "${mSongOffline.artist}"

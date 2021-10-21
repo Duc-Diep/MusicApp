@@ -94,26 +94,28 @@ class MusicService : Service() {
     }
 
     private fun startMusicOnline(index: Int) {
-        if (mediaPlayer == null) {
-            mediaPlayer = MediaPlayer()
-        }
-        mediaPlayer!!.reset()
-        mediaPlayer!!.setDataSource(
-            this,
-            Uri.parse("http://api.mp3.zing.vn/api/streaming/${listSongOnline[index].type}/${listSongOnline[index].id}/128")
-        )
-        mediaPlayer!!.prepare()
-        mediaPlayer?.start()
-        AppPreferences.isPlaying = true
-        sendActionToActivity(ACTION_START)
-        mediaPlayer!!.setOnCompletionListener {
-            if (AppPreferences.isRepeatOne) {
-                startMusicOnline(AppPreferences.indexPlaying)
-            } else {
-                playNextMusic()
+
+            if (mediaPlayer == null) {
+                mediaPlayer = MediaPlayer()
+            }
+            mediaPlayer!!.reset()
+            mediaPlayer!!.setDataSource(
+                this,
+                Uri.parse("http://api.mp3.zing.vn/api/streaming/${listSongOnline[index].type}/${listSongOnline[index].id}/128")
+            )
+            mediaPlayer!!.prepare()
+            mediaPlayer?.start()
+            AppPreferences.isPlaying = true
+            sendActionToActivity(ACTION_START)
+            mediaPlayer!!.setOnCompletionListener {
+                if (AppPreferences.isRepeatOne) {
+                    startMusicOnline(AppPreferences.indexPlaying)
+                } else {
+                    playNextMusic()
+                }
             }
         }
-    }
+
 
     fun handleMusic(action: Int) {
         when (action) {
@@ -140,7 +142,7 @@ class MusicService : Service() {
             startMusicOnline(AppPreferences.indexPlaying)
             sendNotificationMedia(AppPreferences.indexPlaying)
         } else {
-            mSongOffline = listSongOffline!![AppPreferences.indexPlaying]
+            mSongOffline = listSongOffline[AppPreferences.indexPlaying]
             startMusicOffline(AppPreferences.indexPlaying)
             sendNotificationMedia(AppPreferences.indexPlaying)
         }
@@ -148,7 +150,7 @@ class MusicService : Service() {
     }
 
     fun playPreviousMusic() {
-        if (AppPreferences.isOnline) {
+        if (AppPreferences.isOnline&& isNetworkAvailable(this)) {
             if (AppPreferences.indexPlaying == 0) {
                 startMusicOnline(listSongOnline.size - 1)
                 AppPreferences.indexPlaying = listSongOnline.size - 1
@@ -198,7 +200,7 @@ class MusicService : Service() {
     }
 
     fun playNextMusic() {
-        if (AppPreferences.isOnline) {
+        if (AppPreferences.isOnline&& isNetworkAvailable(this)) {
             if (AppPreferences.indexPlaying == listSongOnline.size - 1) {
                 startMusicOnline(0)
                 AppPreferences.indexPlaying = 0

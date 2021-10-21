@@ -1,6 +1,8 @@
 package com.ducdiep.playmusic.activities
 
+import android.Manifest
 import android.content.*
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.speech.RecognizerIntent
@@ -12,6 +14,7 @@ import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
@@ -81,17 +84,7 @@ class ListOfflineActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_list_offline)
-        AppPreferences.init(this)
-        supportActionBar?.hide()
-        glide = Glide.with(this)
-        LocalBroadcastManager.getInstance(this)
-            .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
-
-        setupAdapter()
-
-        if (AppPreferences.indexPlaying != -1) {
-            handleLayoutPlay(ACTION_START)
-        }
+        init()
 
         btn_play_or_pause.setOnClickListener {
             if (AppPreferences.isPlaying) {
@@ -139,6 +132,27 @@ class ListOfflineActivity : AppCompatActivity() {
 
     }
 
+    fun init(){
+        AppPreferences.init(this)
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ){
+            listSongOffline = getAudio(this)
+        }
+        supportActionBar?.hide()
+        glide = Glide.with(this)
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
+
+        setupAdapter()
+
+        if (AppPreferences.indexPlaying != -1) {
+            handleLayoutPlay(ACTION_START)
+        }
+    }
+
     fun sendActionToService(action: Int) {
         var intent = Intent(this, MusicService::class.java)
         intent.putExtra(ACTION_TO_SERVICE, action)
@@ -149,7 +163,9 @@ class ListOfflineActivity : AppCompatActivity() {
     private fun setupAdapter() {
         songOfflineAdapter = SongOfflineAdapter(this, listSongOffline)
         songOfflineAdapter.setOnClickItem {
+            AppPreferences.isOnline = false
             AppPreferences.indexPlaying = listSongOffline.indexOf(it)
+            AppPreferences.isPlayRequireList = true
             playMusic()
             var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)

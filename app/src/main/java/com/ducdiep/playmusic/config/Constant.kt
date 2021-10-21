@@ -5,12 +5,16 @@ import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.provider.MediaStore
 import android.widget.Toast
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.models.songoffline.SongOffline
+
 
 const val ACTION_PAUSE = 1
 const val ACTION_RESUME = 2
@@ -38,12 +42,13 @@ fun getAudio(context: Context): ArrayList<SongOffline> {
     var listSong = ArrayList<SongOffline>()
     try {
         bitmapDefault = BitmapFactory.decodeResource(context.resources, R.drawable.musical_default)
-    }catch (ex:Exception){
-        Toast.makeText(context,"Ảnh quá nặng vượt mức cho phép",Toast.LENGTH_SHORT).show()
+    } catch (ex: Exception) {
+        Toast.makeText(context, "Ảnh quá nặng vượt mức cho phép", Toast.LENGTH_SHORT).show()
     }
     val contentResolver = context.contentResolver
     val uri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-    val cursor: Cursor? = contentResolver.query(uri, null, MediaStore.Audio.Media.IS_MUSIC+"!=0", null, null)
+    val cursor: Cursor? =
+        contentResolver.query(uri, null, MediaStore.Audio.Media.IS_MUSIC + "!=0", null, null)
     if (cursor != null && cursor.moveToFirst()) {
         do {
             val name: String =
@@ -56,46 +61,65 @@ fun getAudio(context: Context): ArrayList<SongOffline> {
                 cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
 
 
-
-            var bitmapPicture :Bitmap?= null
+            var bitmapPicture: Bitmap? = null
             var genres = ""
-            try{
+            try {
                 var media = MediaMetadataRetriever()
                 media.setDataSource(url)
                 var byteArray: ByteArray? = media.embeddedPicture
                 bitmapPicture = try {
                     BitmapFactory.decodeByteArray(byteArray, 0, byteArray!!.size)
-                }catch (ex:Exception){
+                } catch (ex: Exception) {
                     bitmapDefault
                 }
                 genres = media.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE).toString()
 
-            }catch (ex : Exception){
+            } catch (ex: Exception) {
 
             }
-                var songOffline: SongOffline
-                if (bitmapPicture == null) {
-                    songOffline = SongOffline(name, artist, duration.toInt(), bitmapDefault, url,genres)
-                } else {
-                    songOffline = SongOffline(
-                        name,
-                        artist,
-                        duration.toInt(),
-                        bitmapPicture,
-                        url,
-                        genres
-                    )
-                }
-                listSong.add(songOffline)
+            var songOffline: SongOffline
+            if (bitmapPicture == null) {
+                songOffline =
+                    SongOffline(name, artist, duration.toInt(), bitmapDefault, url, genres)
+            } else {
+                songOffline = SongOffline(
+                    name,
+                    artist,
+                    duration.toInt(),
+                    bitmapPicture,
+                    url,
+                    genres
+                )
+            }
+            listSong.add(songOffline)
         } while (cursor.moveToNext())
     }
     cursor!!.close()
     return listSong
 }
-fun reloadData(){
+fun isNetworkAvailable(context: Context): Boolean {
+    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    if (cm==null){
+        return false
+    }
+    if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.M){
+        var network = cm.activeNetwork
+        if (network==null){
+            return false
+        }
+        var capabilities = cm.getNetworkCapabilities(network)
+        return capabilities!=null&&capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+    }else{
+        val netInfo = cm.activeNetworkInfo
+        return netInfo != null && netInfo.isConnected
+    }
+
+}
+
+fun reloadData() {
     AppPreferences.isRepeatOne = false
     AppPreferences.isShuffle = false
-    AppPreferences.indexPlaying=-1
+    AppPreferences.indexPlaying = -1
     AppPreferences.isPlaying = false
     AppPreferences.isServiceRunning = false
     AppPreferences.isOnline = false
