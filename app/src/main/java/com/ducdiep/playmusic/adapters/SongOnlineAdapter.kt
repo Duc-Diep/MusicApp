@@ -10,8 +10,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.ducdiep.playmusic.R
-import com.ducdiep.playmusic.config.URL_THUMB
-import com.ducdiep.playmusic.models.topsong.Song
+import com.ducdiep.playmusic.models.songresponse.Song
 
 class SongOnlineAdapter(var context: Context,var listSong:List<Song>):RecyclerView.Adapter<SongOnlineAdapter.SongviewHolder>() {
     var onClick:((Song)->Unit)?=null

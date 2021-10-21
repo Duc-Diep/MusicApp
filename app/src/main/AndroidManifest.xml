@@ -5,19 +5,20 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".app.MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PlayMusic">
-        <activity android:name=".activities.HomeActivity"></activity>
+        android:theme="@style/Theme.PlayMusic"
+        android:usesCleartextTraffic="true">
+        <activity android:name=".activities.FavouriteActivity"></activity>
+        <activity android:name=".activities.HomeActivity" />
         <activity android:name=".activities.SplashScreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -26,7 +27,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".activities.PlayMusicActivity" />
-        <activity android:name=".activities.ListOfflineActivity"></activity>
+        <activity android:name=".activities.ListOfflineActivity" />
 
         <service android:name=".services.MusicService" />
 

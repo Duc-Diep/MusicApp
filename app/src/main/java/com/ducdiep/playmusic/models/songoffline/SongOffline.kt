@@ -7,4 +7,4 @@ import android.os.Parcelable
 import kotlinx.android.parcel.Parcelize
 import java.io.Serializable
 
-data class SongOffline(var name:String, var artist:String, var duration: Long, var imageBitmap:Bitmap, var resource: String): Serializable
+data class SongOffline(var name:String, var artist:String, var duration: Int, var imageBitmap:Bitmap, var resource: String, var genres:String): Serializable

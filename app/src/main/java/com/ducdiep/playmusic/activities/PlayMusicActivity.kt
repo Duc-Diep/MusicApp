@@ -1,15 +1,15 @@
 package com.ducdiep.playmusic.activities
 
 import android.animation.ObjectAnimator
+import android.app.DownloadManager
 import android.content.*
 import android.graphics.Color
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.IBinder
+import android.net.Uri
+import android.os.*
 import android.view.View
 import android.view.animation.AnimationUtils
 import android.view.animation.LinearInterpolator
+import android.webkit.CookieManager
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -19,26 +19,24 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.adapters.SongOnlineAdapter
-import com.ducdiep.playmusic.adapters.SongSearchAdapter
 import com.ducdiep.playmusic.api.RetrofitInstance
 import com.ducdiep.playmusic.api.SongService
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.config.*
+import com.ducdiep.playmusic.helpers.SqlHelper
+import com.ducdiep.playmusic.models.getgenres.ResponseInfor
 import com.ducdiep.playmusic.models.songoffline.SongOffline
-import com.ducdiep.playmusic.models.topsong.ResponseRecommend
-import com.ducdiep.playmusic.models.topsong.Song
+import com.ducdiep.playmusic.models.songresponse.ResponseRecommend
+import com.ducdiep.playmusic.models.songresponse.Song
 import com.ducdiep.playmusic.services.MusicService
+import kotlinx.android.synthetic.main.activity_home.*
 import kotlinx.android.synthetic.main.activity_play_music.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.android.synthetic.main.activity_play_music.btn_back
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.awaitResponse
 
 class PlayMusicActivity : AppCompatActivity() {
     //set up bound service
@@ -49,6 +47,7 @@ class PlayMusicActivity : AppCompatActivity() {
     lateinit var songService: SongService
     lateinit var handler: Handler
     lateinit var runnable: Runnable
+    lateinit var sqlHelper:SqlHelper
     var isPrevious = false
 
     private val connection = object : ServiceConnection {
@@ -103,6 +102,7 @@ class PlayMusicActivity : AppCompatActivity() {
         AppPreferences.init(this)
         songService = RetrofitInstance.getInstance().create(SongService::class.java)
         glide = Glide.with(this)
+        sqlHelper = SqlHelper(this)
         setStatusButton()
         showDetailMusic()
         setupRecommendSong()
@@ -153,6 +153,7 @@ class PlayMusicActivity : AppCompatActivity() {
                 Toast.makeText(this, "Chế độ phát ngẫu nhiên đã tắt", Toast.LENGTH_SHORT).show()
             }
         }
+
         btn_handle_repeat.setColorFilter(Color.rgb(0, 255, 255))
         btn_handle_repeat.setOnClickListener {
             if (!AppPreferences.isRepeatOne) {
@@ -165,7 +166,36 @@ class PlayMusicActivity : AppCompatActivity() {
                 Toast.makeText(this, "Chế độ phát 1 bài đã tắt", Toast.LENGTH_SHORT).show()
             }
         }
+        btn_download.setOnClickListener {
+            downloadMusic()
+        }
+        img_favourite.setOnClickListener {
+            if (sqlHelper.checkExists(mSongOnline.id)){
+                sqlHelper.removeSong(mSongOnline.id)
+                img_favourite.setImageResource(R.drawable.unlike)
+                Toast.makeText(this, "Đã xóa bài hát khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show()
+            }else{
+                sqlHelper.addSong(mSongOnline)
+                Toast.makeText(this, "Đã thêm bài hát khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show()
+                img_favourite.setImageResource(R.drawable.like)
+            }
+        }
+    }
 
+    private fun downloadMusic() {
+        var url = "http://api.mp3.zing.vn/api/streaming/${mSongOnline.type}/${mSongOnline.id}/320"
+        var uri = Uri.parse(url)
+        var request = DownloadManager.Request(uri)
+        var title = "${mSongOnline.name}.mp3"
+        request.setTitle(title)
+        request.setDescription("Đang tải vui lòng đợi")
+        var cookie = CookieManager.getInstance().getCookie(url)
+        request.addRequestHeader("cookie",cookie)
+        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,title)
+        var downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+        downloadManager.enqueue(request)
+        Toast.makeText(this, "Bắt đầu tải xuống", Toast.LENGTH_SHORT).show()
     }
 
     private fun setupRecommendSong() {
@@ -180,7 +210,7 @@ class PlayMusicActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         var data = response.body()
                         listRecommend = data!!.data.items
-                        if (!listSongOnline.contains(listRecommend[0])&&!isPrevious) {
+                        if (!listSongOnline.contains(listRecommend[0])&&!isPrevious&&!AppPreferences.isPlayRequireList) {
                             listSongOnline.add(listRecommend[0])
                             isPrevious = false
                         }
@@ -277,15 +307,42 @@ class PlayMusicActivity : AppCompatActivity() {
             glide.load(linkImage).into(img_music)
             tv_song_name.text = mSongOnline.name
             tv_song_name.isSelected = true
-            tv_artist.text = mSongOnline.artists_names
-            tv_artist.isSelected = true
+            songService.getSongInfor(mSongOnline.type,mSongOnline.id).enqueue(object :Callback<ResponseInfor>{
+                override fun onResponse(
+                    call: Call<ResponseInfor>,
+                    response: Response<ResponseInfor>
+                ) {
+                    if (response.isSuccessful){
+                        var data = response.body()
+                        if (data!!.data.genres.size>1){
+                            tv_artist.text ="${mSongOnline.artists_names}   ${data.data.genres[1].name}"
+                            tv_artist.isSelected = true
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call<ResponseInfor>, t: Throwable) {
+
+                }
+
+            })
+
             img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+            if (sqlHelper.checkExists(mSongOnline.id)){
+                img_favourite.setImageResource(R.drawable.like)
+            }else{
+                img_favourite.setImageResource(R.drawable.unlike)
+            }
         }else{
             mSongOffline = listSongOffline[AppPreferences.indexPlaying]
             img_music.setImageBitmap(mSongOffline.imageBitmap)
             tv_song_name.text = mSongOffline.name
             tv_song_name.isSelected = true
-            tv_artist.text = mSongOffline.artist
+            if (mSongOffline.genres!=null){
+                tv_artist.text = "${mSongOffline.artist}   ${mSongOffline.genres}"
+            }else{
+                tv_artist.text = "${mSongOffline.artist}"
+            }
             tv_artist.isSelected = true
             img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
         }
@@ -301,7 +358,7 @@ class PlayMusicActivity : AppCompatActivity() {
             duration = (mSongOnline.duration*1000).toLong()
         }else{
             mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-            duration = mSongOffline.duration
+            duration = mSongOffline.duration.toLong()
         }
         tv_progress.text = timerConversion(currentPos.toLong())
         tv_duration.text = timerConversion(duration)

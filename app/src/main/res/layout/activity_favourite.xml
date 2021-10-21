@@ -1,62 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bgr"
-    tools:context=".activities.ListOfflineActivity">
-    <RelativeLayout
-        android:id="@+id/layout_search"
-        android:layout_margin="5dp"
-        android:layout_width="wrap_content"
-        android:layout_height="50dp">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context=".activities.FavouriteActivity">
 
-        <EditText
-            android:id="@+id/edt_search"
-            android:hint="Tìm kiếm"
-            android:paddingLeft="10dp"
-            android:layout_toLeftOf="@id/btn_mic"
-            android:background="@drawable/layout_search"
-            android:drawableLeft="@drawable/ic_baseline_search_24"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
-        <ImageView
-            android:id="@+id/btn_mic"
-            android:src="@drawable/ic_baseline_mic_24"
-            android:layout_alignParentRight="true"
-            android:padding="10dp"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            app:tint="@color/white" />
-    </RelativeLayout>
     <androidx.core.widget.NestedScrollView
-        android:layout_above="@+id/layout_playing"
-        android:layout_below="@id/layout_search"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-    <LinearLayout
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rcv_songs"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        <LinearLayout
+            android:layout_marginTop="20dp"
             android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            android:layout_below="@id/rcv_songs"
-            android:layout_gravity="center_horizontal"
-            android:visibility="gone"
-            android:layout_width="40dp"
-            android:layout_height="40dp"/>
-    </LinearLayout>
+            android:layout_height="wrap_content">
+            <Button
+                android:id="@+id/btn_play_list"
+                android:text="@string/play_random"
+                android:layout_gravity="center_horizontal"
+                android:paddingHorizontal="30dp"
+                android:background="@drawable/button_play"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rcv_songs"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                android:layout_below="@id/rcv_songs"
+                android:layout_gravity="center_horizontal"
+                android:visibility="gone"
+                android:layout_width="40dp"
+                android:layout_height="40dp"/>
+
+        </LinearLayout>
     </androidx.core.widget.NestedScrollView>
     <RelativeLayout
         android:id="@+id/layout_playing"
-        android:visibility="gone"
+        android:visibility="visible"
         android:paddingHorizontal="10dp"
         android:layout_width="match_parent"
         android:layout_height="70dp"
@@ -130,8 +115,8 @@
             android:id="@+id/btn_play_or_pause"
             android:layout_centerVertical="true"
             android:src="@drawable/pause"
-            android:layout_marginRight="5dp"
             android:padding="5dp"
+            android:layout_marginRight="5dp"
             android:layout_toLeftOf="@id/btn_next"
             android:paddingLeft="2dp"
             android:layout_width="35dp"
@@ -140,12 +125,11 @@
             android:id="@+id/btn_previous"
             android:layout_centerVertical="true"
             android:src="@drawable/previous"
-            android:layout_marginRight="5dp"
             android:padding="5dp"
+            android:layout_marginRight="5dp"
             android:layout_toLeftOf="@id/btn_play_or_pause"
             android:layout_width="35dp"
             android:layout_height="35dp"/>
     </RelativeLayout>
-
 
 </RelativeLayout>

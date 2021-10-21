@@ -1,4 +1,4 @@
-package com.ducdiep.playmusic.models.topsong
+package com.ducdiep.playmusic.models.songresponse
 
 data class Artist(
     val link: String,

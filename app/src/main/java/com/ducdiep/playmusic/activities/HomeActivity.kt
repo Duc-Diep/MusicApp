@@ -1,18 +1,25 @@
 package com.ducdiep.playmusic.activities
 
 import android.app.AlertDialog
+import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.os.Handler
+import android.speech.RecognizerIntent
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import android.widget.PopupMenu
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.viewpager2.widget.ViewPager2
+import com.bumptech.glide.Glide
+import com.bumptech.glide.RequestManager
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.adapters.SlideAdapter
 import com.ducdiep.playmusic.adapters.SongSearchAdapter
@@ -20,32 +27,54 @@ import com.ducdiep.playmusic.adapters.TopSongHoriAdapter
 import com.ducdiep.playmusic.api.RetrofitInstance
 import com.ducdiep.playmusic.api.SongService
 import com.ducdiep.playmusic.app.AppPreferences
+import com.ducdiep.playmusic.app.MyApplication
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
-import com.ducdiep.playmusic.config.ACTION_START
-import com.ducdiep.playmusic.config.ACTION_TO_SERVICE
-import com.ducdiep.playmusic.config.URL_THUMB
+import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.search.ResponseSearch
 import com.ducdiep.playmusic.models.search.SongSearch
-import com.ducdiep.playmusic.models.topsong.ResponseTopSong
-import com.ducdiep.playmusic.models.topsong.Song
+import com.ducdiep.playmusic.models.songoffline.SongOffline
+import com.ducdiep.playmusic.models.songresponse.ResponseTopSong
+import com.ducdiep.playmusic.models.songresponse.Song
 import com.ducdiep.playmusic.services.MusicService
 import kotlinx.android.synthetic.main.activity_home.*
+import kotlinx.android.synthetic.main.activity_home.btn_close
+import kotlinx.android.synthetic.main.activity_home.btn_next
+import kotlinx.android.synthetic.main.activity_home.btn_play_or_pause
+import kotlinx.android.synthetic.main.activity_home.btn_previous
 import kotlinx.android.synthetic.main.activity_home.edt_search
+import kotlinx.android.synthetic.main.activity_home.img_song
+import kotlinx.android.synthetic.main.activity_home.layout_playing
+import kotlinx.android.synthetic.main.activity_home.layout_title
+import kotlinx.android.synthetic.main.activity_home.tv_name
+import kotlinx.android.synthetic.main.activity_home.tv_single
 import kotlinx.android.synthetic.main.activity_list_offline.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.awaitResponse
 
 class HomeActivity : AppCompatActivity() {
+    var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            var bundle = intent.extras
+            if (bundle == null) return
+            var action = bundle.getInt(ACTION)
+            handleLayoutPlay(action)
+        }
+    }
+    lateinit var mSongOffline: SongOffline
+    lateinit var mSongOnline: Song
+    lateinit var glide: RequestManager
     lateinit var songService: SongService
     lateinit var songServiceSearch: SongService
     lateinit var listTopSong: List<Song>
     lateinit var listSearch: List<SongSearch>
+    private val searcByvoice =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            if (it.resultCode == RESULT_OK && it.data != null) {
+                var hi = it.data!!.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                edt_search.setText(hi!![0])
+            }
+        }
     var handler = Handler()
     var runSlide = Runnable {
         if (view_pager_slide.currentItem == 4) {
@@ -80,7 +109,7 @@ class HomeActivity : AppCompatActivity() {
                         "Không tìm thấy bài hát này",
                         Toast.LENGTH_SHORT
                     ).show()
-                    progress_bar.visibility = View.GONE
+                    progressbar_search.visibility = View.GONE
                 }
 
             })
@@ -91,9 +120,12 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         supportActionBar?.hide()
         setContentView(R.layout.activity_home)
-        AppPreferences.init(this)
-        songService = RetrofitInstance.getInstance().create(SongService::class.java)
-        songServiceSearch = RetrofitInstance.getInstanceSearch().create(SongService::class.java)
+        init()
+        setClick()
+        getTopSong()
+    }
+
+    private fun setClick() {
         edt_search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
                 btn_back.visibility = View.VISIBLE
@@ -129,8 +161,165 @@ class HomeActivity : AppCompatActivity() {
             var intent = Intent(this, ListOfflineActivity::class.java)
             startActivity(intent)
         }
+        img_favourite_home.setOnClickListener{
+            var intent = Intent(this, FavouriteActivity::class.java)
+            startActivity(intent)
+        }
+        btn_mic_home.setOnClickListener {
+            showPopup(it)
+        }
 
-        getTopSong()
+        if (AppPreferences.indexPlaying != -1) {
+            handleLayoutPlay(ACTION_START)
+        }
+
+        btn_play_or_pause.setOnClickListener {
+            if (AppPreferences.isPlaying) {
+                sendActionToService(ACTION_PAUSE)
+            } else {
+                sendActionToService(ACTION_RESUME)
+            }
+        }
+        btn_close.setOnClickListener {
+            sendActionToService(ACTION_CLEAR)
+        }
+        btn_next.setOnClickListener {
+            sendActionToService(ACTION_NEXT)
+
+        }
+        btn_previous.setOnClickListener {
+            sendActionToService(ACTION_PREVIOUS)
+
+        }
+        layout_title.setOnClickListener {
+            var intent = Intent(this, PlayMusicActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            startActivity(intent)
+        }
+    }
+
+    fun init(){
+        AppPreferences.init(this)
+        glide = Glide.with(this)
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
+        songService = RetrofitInstance.getInstance().create(SongService::class.java)
+        songServiceSearch = RetrofitInstance.getInstanceSearch().create(SongService::class.java)
+    }
+
+    private fun handleLayoutPlay(action: Int) {
+        when (action) {
+            ACTION_START -> {
+                layout_playing.visibility = View.VISIBLE
+                showDetailMusic()
+                setStatusButton()
+            }
+            ACTION_PAUSE -> setStatusButton()
+            ACTION_RESUME -> setStatusButton()
+            ACTION_CLEAR -> {
+                layout_playing.visibility = View.GONE
+                reloadData()
+            }
+            ACTION_NEXT -> showDetailMusic()
+            ACTION_PREVIOUS -> showDetailMusic()
+        }
+    }
+    fun setStatusButton() {
+        if (AppPreferences.isPlaying) {
+            btn_play_or_pause.setImageResource(R.drawable.pause)
+        } else {
+            btn_play_or_pause.setImageResource(R.drawable.play)
+        }
+    }
+
+    fun showDetailMusic() {
+        if (AppPreferences.isOnline){
+            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+            var linkImage = mSongOnline.thumbnail
+            glide.load(linkImage).into(img_song)
+            tv_name.text = mSongOnline.name
+            tv_name.isSelected = true
+            tv_single.text = mSongOnline.artists_names
+            tv_single.isSelected = true
+        }else{
+            mSongOffline = MyApplication.listSongOffline[AppPreferences.indexPlaying]
+            img_song.setImageBitmap(mSongOffline.imageBitmap)
+            tv_name.text = mSongOffline.name
+            tv_name.isSelected = true
+            tv_single.text = mSongOffline.artist
+            tv_single.isSelected = true
+            tv_single.isFocusable = true
+        }
+
+    }
+
+    //create popup
+    private fun showPopup(view: View) {
+        var popupMenu = PopupMenu(this, view)
+        var inflater = popupMenu.menuInflater
+        inflater.inflate(R.menu.menu_language, popupMenu.menu)
+        popupMenu.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.lan_vn -> {
+                    searchByVoice("vi")
+                    true
+                }
+                R.id.lan_en -> {
+                    searchByVoice("en")
+                    true
+                }
+                else -> false
+            }
+        }
+        popupMenu.show()
+    }
+    private fun searchByVoice(s: String) {
+        when (s) {
+            "vi" -> {
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                intent.putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, s)
+                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Nói gì đó đi: ")
+                try {
+                    searcByvoice.launch(intent)
+                } catch (ex: Exception) {
+                    Toast.makeText(
+                        this@HomeActivity,
+                        "Gặp lỗi khi sử dụng chức năng này",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            "en" -> {
+//                textToSpeech = TextToSpeech(this@MainActivity) { status: Int ->
+//                    if (status != TextToSpeech.ERROR) {
+//                        textToSpeech.language = Locale(s)
+//                    } else {
+//                        Toast.makeText(this@MainActivity, "Error when use this function", Toast.LENGTH_SHORT).show()
+//                    }
+//                }
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                intent.putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, s)
+                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Say something: ")
+                try {
+                    searcByvoice.launch(intent)
+                } catch (ex: Exception) {
+                    Toast.makeText(
+                        this@HomeActivity,
+                        "Error when use this function",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+
     }
 
     private fun getTopSong() {
@@ -180,6 +369,7 @@ class HomeActivity : AppCompatActivity() {
             listSongOnline = listTopSong as ArrayList<Song>
             AppPreferences.indexPlaying = it.position - 1
             AppPreferences.isOnline = true
+            AppPreferences.isPlayRequireList = true
             var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)
             sendActionToService(ACTION_START)
@@ -201,12 +391,12 @@ class HomeActivity : AppCompatActivity() {
                     it.name,
                     0,
                     "$URL_THUMB${it.thumb}",
-                    it.name,
                     "audio"
                 )
             )
             AppPreferences.indexPlaying = 0
             AppPreferences.isOnline = true
+            AppPreferences.isPlayRequireList = false
             var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)
             sendActionToService(ACTION_START)
@@ -249,5 +439,9 @@ class HomeActivity : AppCompatActivity() {
                 ) { dialog, which -> }
                 .show()
         }
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
     }
 }

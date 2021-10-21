@@ -54,7 +54,11 @@ fun getAudio(context: Context): ArrayList<SongOffline> {
                 cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
             val duration: String =
                 cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
+
+
+
             var bitmapPicture :Bitmap?= null
+            var genres = ""
             try{
                 var media = MediaMetadataRetriever()
                 media.setDataSource(url)
@@ -64,19 +68,22 @@ fun getAudio(context: Context): ArrayList<SongOffline> {
                 }catch (ex:Exception){
                     bitmapDefault
                 }
+                genres = media.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE).toString()
+
             }catch (ex : Exception){
 
             }
                 var songOffline: SongOffline
                 if (bitmapPicture == null) {
-                    songOffline = SongOffline(name, artist, duration.toLong(), bitmapDefault, url)
+                    songOffline = SongOffline(name, artist, duration.toInt(), bitmapDefault, url,genres)
                 } else {
                     songOffline = SongOffline(
                         name,
                         artist,
-                        duration.toLong(),
+                        duration.toInt(),
                         bitmapPicture,
-                        url
+                        url,
+                        genres
                     )
                 }
                 listSong.add(songOffline)
@@ -92,4 +99,5 @@ fun reloadData(){
     AppPreferences.isPlaying = false
     AppPreferences.isServiceRunning = false
     AppPreferences.isOnline = false
+    AppPreferences.isPlayRequireList = false
 }

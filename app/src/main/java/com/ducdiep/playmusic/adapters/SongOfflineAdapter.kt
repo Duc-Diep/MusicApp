@@ -29,7 +29,7 @@ class SongOfflineAdapter(var context: Context, var listSongOffline: ArrayList<So
         holder.tvSongName.text = song.name
         holder.tvSongArtist.text = song.artist
         holder.imgSong.setImageBitmap(song.imageBitmap)
-        holder.imgPlay.setOnClickListener {
+        holder.itemView.setOnClickListener {
             onClick?.invoke(song)
         }
     }
@@ -41,7 +41,6 @@ class SongOfflineAdapter(var context: Context, var listSongOffline: ArrayList<So
     class SongViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         var tvSongName = itemView.findViewById<TextView>(R.id.tv_song_item_name)
         var tvSongArtist = itemView.findViewById<TextView>(R.id.tv_song_item_artist)
-        var imgPlay = itemView.findViewById<ImageView>(R.id.btn_play_item)
         var imgSong = itemView.findViewById<ImageView>(R.id.img_song_item)
     }
 

@@ -9,8 +9,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.ducdiep.playmusic.R
-import com.ducdiep.playmusic.models.topsong.Song
-import kotlinx.android.synthetic.main.top_song_item_horizontal.view.*
+import com.ducdiep.playmusic.models.songresponse.Song
 
 class TopSongHoriAdapter(var context:Context, var listSong:List<Song>):
     RecyclerView.Adapter<TopSongHoriAdapter.SongViewHolder>() {

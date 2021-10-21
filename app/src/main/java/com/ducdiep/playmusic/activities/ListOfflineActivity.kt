@@ -13,19 +13,26 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.bumptech.glide.Glide
+import com.bumptech.glide.RequestManager
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.adapters.SongOfflineAdapter
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.songoffline.SongOffline
+import com.ducdiep.playmusic.models.songresponse.Song
 import com.ducdiep.playmusic.services.MusicService
 import kotlinx.android.synthetic.main.activity_list_offline.*
+import kotlinx.android.synthetic.main.activity_play_music.*
 import java.util.*
 import kotlin.collections.ArrayList
 
 class ListOfflineActivity : AppCompatActivity() {
     lateinit var mSongOffline: SongOffline
+    lateinit var mSongOnline: Song
+    lateinit var glide: RequestManager
     lateinit var songOfflineAdapter: SongOfflineAdapter
     private val searcByvoice =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -63,6 +70,7 @@ class ListOfflineActivity : AppCompatActivity() {
         songOfflineAdapter.setOnClickItem {
             AppPreferences.indexPlaying = listSongOffline.indexOf(it)
             AppPreferences.isOnline = false
+            AppPreferences.isPlayRequireList = true
             playMusic()
             var intent = Intent(this@ListOfflineActivity, PlayMusicActivity::class.java)
             startActivity(intent)
@@ -75,6 +83,7 @@ class ListOfflineActivity : AppCompatActivity() {
         setContentView(R.layout.activity_list_offline)
         AppPreferences.init(this)
         supportActionBar?.hide()
+        glide = Glide.with(this)
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
 
@@ -172,20 +181,24 @@ class ListOfflineActivity : AppCompatActivity() {
     }
 
     fun showDetailMusic() {
-        mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-        img_song.setImageBitmap(mSongOffline.imageBitmap)
-        tv_name.text = mSongOffline.name
-        tv_name.ellipsize = TextUtils.TruncateAt.MARQUEE
-        tv_name.setHorizontallyScrolling(true)
-        tv_name.isSelected = true
-        tv_name.marqueeRepeatLimit = -1
-        tv_name.isFocusable = true
-        tv_single.text = mSongOffline.artist
-        tv_single.ellipsize = TextUtils.TruncateAt.MARQUEE
-        tv_single.setHorizontallyScrolling(true)
-        tv_single.isSelected = true
-        tv_single.marqueeRepeatLimit = -1
-        tv_single.isFocusable = true
+        if (AppPreferences.isOnline){
+            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+            var linkImage = mSongOnline.thumbnail
+            glide.load(linkImage).into(img_song)
+            tv_name.text = mSongOnline.name
+            tv_name.isSelected = true
+            tv_single.text = mSongOnline.artists_names
+            tv_single.isSelected = true
+        }else{
+            mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+            img_song.setImageBitmap(mSongOffline.imageBitmap)
+            tv_name.text = mSongOffline.name
+            tv_name.isSelected = true
+            tv_single.text = mSongOffline.artist
+            tv_single.isSelected = true
+            tv_single.isFocusable = true
+        }
+
     }
 
     fun setStatusButton() {

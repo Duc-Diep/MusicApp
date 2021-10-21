@@ -11,7 +11,6 @@ import com.bumptech.glide.Glide
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.config.URL_THUMB
 import com.ducdiep.playmusic.models.search.SongSearch
-import com.ducdiep.playmusic.models.topsong.Song
 
 class SongSearchAdapter(var context: Context, var listSongSearch:List<SongSearch>):RecyclerView.Adapter<SongSearchAdapter.SongViewHolder>() {
     var onClick: ((SongSearch)->Unit)?=null

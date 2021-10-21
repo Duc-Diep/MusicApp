@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.*
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ducdiep.playmusic.R
@@ -22,7 +23,7 @@ import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.broadcasts.MyReceiver
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.songoffline.SongOffline
-import com.ducdiep.playmusic.models.topsong.Song
+import com.ducdiep.playmusic.models.songresponse.Song
 import kotlinx.coroutines.*
 import java.io.IOException
 import java.io.InputStream
@@ -34,11 +35,12 @@ class MusicService : Service() {
     var mediaPlayer: MediaPlayer? = null
     lateinit var mSongOffline: SongOffline
     lateinit var mSongOnline: Song
-    var currentPos:Int = 0
+    var currentPos: Int = 0
     lateinit var mediaSession: MediaSessionCompat
+    lateinit var playbackStateCompat: PlaybackStateCompat
 
-    lateinit var listRandomed:ArrayList<Int>
-    var listPreviousRandom:ArrayList<Int> = ArrayList()
+    lateinit var listRandomed: ArrayList<Int>
+    var listPreviousRandom: ArrayList<Int> = ArrayList()
 
     private val binder = MusicBinder()
 
@@ -64,9 +66,9 @@ class MusicService : Service() {
         return START_NOT_STICKY
     }
 
-    fun reloadListRandom(){
+    fun reloadListRandom() {
         listRandomed = ArrayList()
-        for (i in 0 until listSongOffline!!.size){
+        for (i in 0 until listSongOffline!!.size) {
             listRandomed.add(i)
         }
     }
@@ -83,13 +85,14 @@ class MusicService : Service() {
         AppPreferences.isPlaying = true
         sendActionToActivity(ACTION_START)
         mediaPlayer!!.setOnCompletionListener {
-            if (AppPreferences.isRepeatOne){
+            if (AppPreferences.isRepeatOne) {
                 startMusicOffline(AppPreferences.indexPlaying)
-            }else{
+            } else {
                 playNextMusic()
             }
         }
     }
+
     private fun startMusicOnline(index: Int) {
         if (mediaPlayer == null) {
             mediaPlayer = MediaPlayer()
@@ -104,9 +107,9 @@ class MusicService : Service() {
         AppPreferences.isPlaying = true
         sendActionToActivity(ACTION_START)
         mediaPlayer!!.setOnCompletionListener {
-            if (AppPreferences.isRepeatOne){
+            if (AppPreferences.isRepeatOne) {
                 startMusicOnline(AppPreferences.indexPlaying)
-            }else{
+            } else {
                 playNextMusic()
             }
         }
@@ -132,11 +135,11 @@ class MusicService : Service() {
     }
 
     private fun startNewMusic() {
-        if (AppPreferences.isOnline){
+        if (AppPreferences.isOnline) {
             mSongOnline = listSongOnline[AppPreferences.indexPlaying]
             startMusicOnline(AppPreferences.indexPlaying)
             sendNotificationMedia(AppPreferences.indexPlaying)
-        }else{
+        } else {
             mSongOffline = listSongOffline!![AppPreferences.indexPlaying]
             startMusicOffline(AppPreferences.indexPlaying)
             sendNotificationMedia(AppPreferences.indexPlaying)
@@ -145,7 +148,7 @@ class MusicService : Service() {
     }
 
     fun playPreviousMusic() {
-        if (AppPreferences.isOnline){
+        if (AppPreferences.isOnline) {
             if (AppPreferences.indexPlaying == 0) {
                 startMusicOnline(listSongOnline.size - 1)
                 AppPreferences.indexPlaying = listSongOnline.size - 1
@@ -153,29 +156,29 @@ class MusicService : Service() {
                 startMusicOnline(AppPreferences.indexPlaying - 1)
                 AppPreferences.indexPlaying = AppPreferences.indexPlaying - 1
             }
-        }else{
+        } else {
             if (AppPreferences.isShuffle) {
-                if (listPreviousRandom.size>0){
-                    if (listPreviousRandom.size==1){
-                        var index = listPreviousRandom.size-1
+                if (listPreviousRandom.size > 0) {
+                    if (listPreviousRandom.size == 1) {
+                        var index = listPreviousRandom.size - 1
                         startMusicOffline(listPreviousRandom[index])
                         AppPreferences.indexPlaying = listPreviousRandom[index]
                         listPreviousRandom.removeLastOrNull()
-                    }else{
-                        var index = listPreviousRandom.size-2
+                    } else {
+                        var index = listPreviousRandom.size - 2
                         startMusicOffline(listPreviousRandom[index])
                         AppPreferences.indexPlaying = listPreviousRandom[index]
                         listPreviousRandom.removeLastOrNull()
                     }
 
-                }else{
-                    if (listRandomed.size==0){
+                } else {
+                    if (listRandomed.size == 0) {
                         reloadListRandom()
                     }
                     var rd = (0 until listRandomed!!.size).random()
                     AppPreferences.indexPlaying = listRandomed[rd]
                     startMusicOffline(listRandomed[rd])
-                    if (listRandomed.size==0){
+                    if (listRandomed.size == 0) {
                         reloadListRandom()
                     }
                 }
@@ -195,7 +198,7 @@ class MusicService : Service() {
     }
 
     fun playNextMusic() {
-        if (AppPreferences.isOnline){
+        if (AppPreferences.isOnline) {
             if (AppPreferences.indexPlaying == listSongOnline.size - 1) {
                 startMusicOnline(0)
                 AppPreferences.indexPlaying = 0
@@ -203,9 +206,9 @@ class MusicService : Service() {
                 startMusicOnline(AppPreferences.indexPlaying + 1)
                 AppPreferences.indexPlaying = AppPreferences.indexPlaying + 1
             }
-        }else{
+        } else {
             if (AppPreferences.isShuffle) {
-                if (listRandomed.size==0){
+                if (listRandomed.size == 0) {
                     reloadListRandom()
                 }
                 var rd = (0 until listRandomed.size).random()
@@ -308,28 +311,31 @@ class MusicService : Service() {
             }
         }
     }
+
     fun sendNotificationMedia(index: Int) {
         mediaSession = MediaSessionCompat(this, "tag")
 
-        if (AppPreferences.isOnline){
+        if (AppPreferences.isOnline) {
             var songOn = listSongOnline[index]
             var name = songOn.name
             var artist = songOn.artists_names
+            var duration = songOn.duration * 1000
             GlobalScope.launch(Dispatchers.Main) {
                 var bitmap = getBitmapFromURL(songOn.thumbnail)
-                showNotification(bitmap, name, artist)
+                showNotification(bitmap, name, artist, duration)
             }
-        }else{
+        } else {
             var songOff = listSongOffline[index]
             var bitmap = songOff.imageBitmap
             var name = songOff.name
             var artist = songOff.artist
-            showNotification(bitmap, name, artist)
+            var duration = songOff.duration
+            showNotification(bitmap, name, artist, duration)
         }
 
     }
 
-    private fun showNotification(bitmap:Bitmap?,name:String,artist:String) {
+    private fun showNotification(bitmap: Bitmap?, name: String, artist: String, duration: Int) {
         //pending intent mở app khi bấm vào notification
         var intent = Intent(this, PlayMusicActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -340,19 +346,19 @@ class MusicService : Service() {
         val mediaMetaData = MediaMetadataCompat.Builder()
         mediaMetaData.putLong(
             MediaMetadataCompat.METADATA_KEY_DURATION,
-            -1
+            duration.toLong()
         )
         mediaSession.setMetadata(mediaMetaData.build())
 
 
-//        updateState(0)
-//        mediaSession.setCallback(object : MediaSessionCompat.Callback() {
-//            override fun onSeekTo(pos: Long) {
-//                mediaPlayer!!.seekTo(pos.toInt())
-//                updateState(pos)
-//            }
-//        })
-//        mediaSession.isActive = true
+        updateState(0)
+        mediaSession.setCallback(object : MediaSessionCompat.Callback() {
+            override fun onSeekTo(pos: Long) {
+                mediaPlayer!!.seekTo(pos.toInt())
+                updateState(pos)
+            }
+        })
+        mediaSession.isActive = true
 
         var notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setStyle(
@@ -360,7 +366,7 @@ class MusicService : Service() {
                     .setShowActionsInCompactView(0, 1, 2)
                     .setMediaSession(mediaSession.sessionToken)
             )
-            .setSmallIcon(R.drawable.music_logo)
+            .setSmallIcon(R.drawable.ic_baseline_music_note_24)
             .setLargeIcon(bitmap)
             .setContentText(name)
             .setContentTitle(artist)
@@ -388,38 +394,38 @@ class MusicService : Service() {
         startForeground(1, notification)
     }
 
-//    fun updateState(curentPos: Long) {
-//        if (isPlaying) {
-//            mPlaybackState = PlaybackStateCompat.Builder()
-//                .setState(
-//                    PlaybackStateCompat.ACTION_PLAY.toInt(),
-//                    curentPos,
-//                    1.0f,
-//                )
-//                .setActions(
-//                    PlaybackStateCompat.ACTION_PLAY or
-//                    PlaybackStateCompat.ACTION_PLAY_PAUSE or
-//                            PlaybackStateCompat.ACTION_PAUSE or
-//                            PlaybackStateCompat.ACTION_SEEK_TO
-//                )
-//                .build()
-//        } else {
-//            mPlaybackState = PlaybackStateCompat.Builder()
-//                .setState(
-//                    PlaybackStateCompat.ACTION_PAUSE.toInt(),
-//                    curentPos,
-//                    1.0f, SystemClock.elapsedRealtime()
-//                )
-//                .setActions(
-//                    PlaybackStateCompat.ACTION_PLAY or
-//                    PlaybackStateCompat.ACTION_PLAY_PAUSE or
-//                            PlaybackStateCompat.ACTION_PAUSE or
-//                            PlaybackStateCompat.ACTION_SEEK_TO
-//                )
-//                .build()
-//        }
-//        mediaSession.setPlaybackState(mPlaybackState)
-//    }
+    fun updateState(curentPos: Long) {
+        if (AppPreferences.isPlaying) {
+            playbackStateCompat = PlaybackStateCompat.Builder()
+                .setState(
+                    PlaybackStateCompat.ACTION_PLAY.toInt(),
+                    curentPos,
+                    1.0f,
+                )
+                .setActions(
+                    PlaybackStateCompat.ACTION_PLAY or
+                            PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                            PlaybackStateCompat.ACTION_PAUSE or
+                            PlaybackStateCompat.ACTION_SEEK_TO
+                )
+                .build()
+        } else {
+            playbackStateCompat = PlaybackStateCompat.Builder()
+                .setState(
+                    PlaybackStateCompat.ACTION_PAUSE.toInt(),
+                    curentPos,
+                    1.0f, SystemClock.elapsedRealtime()
+                )
+                .setActions(
+                    PlaybackStateCompat.ACTION_PLAY or
+                            PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                            PlaybackStateCompat.ACTION_PAUSE or
+                            PlaybackStateCompat.ACTION_SEEK_TO
+                )
+                .build()
+        }
+        mediaSession.setPlaybackState(playbackStateCompat)
+    }
 
 
     //gửi action sang broadcast khi bấm nút
@@ -435,8 +441,6 @@ class MusicService : Service() {
     }
 
 
-
-
     //gửi data qua activity để hiện thị trên UI
     fun sendActionToActivity(action: Int) {
         var intent = Intent(ACTION_SEND_TO_ACTIVITY)
@@ -446,6 +450,7 @@ class MusicService : Service() {
         intent.putExtras(bundle)
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
+
     override fun onDestroy() {
         if (mediaPlayer != null) {
             mediaPlayer!!.release()

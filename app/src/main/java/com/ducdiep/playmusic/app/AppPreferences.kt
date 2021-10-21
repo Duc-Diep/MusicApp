@@ -15,6 +15,7 @@ object AppPreferences {
     private val IS_REPEAT_ONE = Pair("repeatone",false)
     private val IS_SERVICE_RUNNING = Pair("isServiceRunning",false)
     private val IS_ONLINE = Pair("isOnline",false)
+    private val IS_PLAY_REQUIRE_LIST = Pair("isPlayRequireList",false)
 
     fun init(context: Context?) {
         preferences = context?.getSharedPreferences(NAME, MODE)!!
@@ -54,5 +55,10 @@ object AppPreferences {
         get() = preferences.getBoolean(IS_ONLINE.first, IS_ONLINE.second)
         set(value) = preferences.edit {
             it.putBoolean(IS_ONLINE.first, value)
+        }
+    var isPlayRequireList: Boolean
+        get() = preferences.getBoolean(IS_PLAY_REQUIRE_LIST.first, IS_PLAY_REQUIRE_LIST.second)
+        set(value) = preferences.edit {
+            it.putBoolean(IS_PLAY_REQUIRE_LIST.first, value)
         }
 }
