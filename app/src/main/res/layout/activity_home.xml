@@ -49,7 +49,7 @@
                 android:id="@+id/btn_back"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
-                android:padding="7dp"
+                android:padding="10dp"
                 android:src="@drawable/ic_back_arrow_back_24"
                 android:visibility="gone" />
 

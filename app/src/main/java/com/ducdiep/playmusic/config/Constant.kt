@@ -51,47 +51,52 @@ fun getAudio(context: Context): ArrayList<SongOffline> {
         contentResolver.query(uri, null, MediaStore.Audio.Media.IS_MUSIC + "!=0", null, null)
     if (cursor != null && cursor.moveToFirst()) {
         do {
-            val name: String =
-                cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE))
-            val artist: String =
-                cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST))
-            val url: String =
-                cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
-            val duration: String =
-                cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
-
-
-            var bitmapPicture: Bitmap? = null
-            var genres = ""
             try {
-                var media = MediaMetadataRetriever()
-                media.setDataSource(url)
-                var byteArray: ByteArray? = media.embeddedPicture
-                bitmapPicture = try {
-                    BitmapFactory.decodeByteArray(byteArray, 0, byteArray!!.size)
+                val name: String =
+                    cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE))
+                val artist: String =
+                    cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST))
+                val url: String =
+                    cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA))
+                val duration: String =
+                    cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION))
+
+
+                var bitmapPicture: Bitmap? = null
+                var genres = ""
+                try {
+                    var media = MediaMetadataRetriever()
+                    media.setDataSource(url)
+                    var byteArray: ByteArray? = media.embeddedPicture
+                    bitmapPicture = try {
+                        BitmapFactory.decodeByteArray(byteArray, 0, byteArray!!.size)
+                    } catch (ex: Exception) {
+                        bitmapDefault
+                    }
+                    genres = media.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE).toString()
+
                 } catch (ex: Exception) {
-                    bitmapDefault
+
                 }
-                genres = media.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE).toString()
-
-            } catch (ex: Exception) {
-
+                var songOffline: SongOffline
+                if (bitmapPicture == null) {
+                    songOffline =
+                        SongOffline(name, artist, duration.toInt(), bitmapDefault, url, genres)
+                } else {
+                    songOffline = SongOffline(
+                        name,
+                        artist,
+                        duration.toInt(),
+                        bitmapPicture,
+                        url,
+                        genres
+                    )
+                }
+                listSong.add(songOffline)
+            }catch (ex:Exception){
+//                Toast.makeText(context, "Tải bài hát thất bại", Toast.LENGTH_SHORT).show()
             }
-            var songOffline: SongOffline
-            if (bitmapPicture == null) {
-                songOffline =
-                    SongOffline(name, artist, duration.toInt(), bitmapDefault, url, genres)
-            } else {
-                songOffline = SongOffline(
-                    name,
-                    artist,
-                    duration.toInt(),
-                    bitmapPicture,
-                    url,
-                    genres
-                )
-            }
-            listSong.add(songOffline)
+
         } while (cursor.moveToNext())
     }
     cursor!!.close()

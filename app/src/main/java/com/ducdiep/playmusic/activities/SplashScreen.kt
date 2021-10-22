@@ -32,7 +32,8 @@ class SplashScreen : AppCompatActivity() {
             ActivityCompat.requestPermissions(
                 this, arrayOf(
                     Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Manifest.permission.MANAGE_EXTERNAL_STORAGE
                 ),
                 PERMISSION_REQUEST
             )

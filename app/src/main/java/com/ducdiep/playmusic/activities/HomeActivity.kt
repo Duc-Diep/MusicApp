@@ -98,8 +98,7 @@ class HomeActivity : AppCompatActivity() {
 
     //search
     var runSearch = Runnable {
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-        imm?.hideSoftInputFromWindow(edt_search.windowToken, 0)
+
         var key = edt_search.text.toString()
         songServiceSearch.getSearch("artist,song,key,code", 500, key)
             .enqueue(object : Callback<ResponseSearch> {
@@ -109,9 +108,13 @@ class HomeActivity : AppCompatActivity() {
                 ) {
                     if (response.isSuccessful) {
                         var data = response.body()
-                        listSearch = data?.data!![0].song
-                        setupDataSearch(listSearch)
+                        if (data!!.data.size>0){
+                            listSearch = data?.data!![0].song
+                            setupDataSearch(listSearch)
+                        }
                         progressbar_search.visibility = View.GONE
+                        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                        imm?.hideSoftInputFromWindow(edt_search.windowToken, 0)
                     }
                 }
 
@@ -151,6 +154,8 @@ class HomeActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {
                 if (s.toString() == "") {
                     btn_back.visibility = View.GONE
+                    rcv_search.visibility = View.GONE
+                    progressbar_search.visibility = View.GONE
                     handler.removeCallbacks(runSearch)
                 } else {
                     progressbar_search.visibility = View.VISIBLE
@@ -449,6 +454,11 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         handler.postDelayed(runSlide, 2000)
+        if (AppPreferences.indexPlaying!=-1){
+            showDetailMusic()
+            setStatusButton()
+        }
+
     }
 
     override fun onBackPressed() {
@@ -469,6 +479,7 @@ class HomeActivity : AppCompatActivity() {
                 .show()
         }
     }
+
 
     override fun onStart() {
         super.onStart()
