@@ -170,32 +170,36 @@ class PlayMusicActivity : AppCompatActivity() {
             downloadMusic()
         }
         img_favourite.setOnClickListener {
-            if (sqlHelper.checkExists(mSongOnline.id)){
-                sqlHelper.removeSong(mSongOnline.id)
-                img_favourite.setImageResource(R.drawable.unlike)
-                Toast.makeText(this, "Đã xóa bài hát khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show()
-            }else{
-                sqlHelper.addSong(mSongOnline)
-                Toast.makeText(this, "Đã thêm bài hát vào danh sách yêu thích", Toast.LENGTH_SHORT).show()
-                img_favourite.setImageResource(R.drawable.like)
+            if (AppPreferences.isOnline){
+                if (sqlHelper.checkExists(mSongOnline.id)){
+                    sqlHelper.removeSong(mSongOnline.id)
+                    img_favourite.setImageResource(R.drawable.unlike)
+                    Toast.makeText(this, "Đã xóa bài hát khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show()
+                }else{
+                    sqlHelper.addSong(mSongOnline)
+                    Toast.makeText(this, "Đã thêm bài hát vào danh sách yêu thích", Toast.LENGTH_SHORT).show()
+                    img_favourite.setImageResource(R.drawable.like)
+                }
             }
         }
     }
 
     private fun downloadMusic() {
-        var url = "http://api.mp3.zing.vn/api/streaming/${mSongOnline.type}/${mSongOnline.id}/320"
-        var uri = Uri.parse(url)
-        var request = DownloadManager.Request(uri)
-        var title = "${mSongOnline.name}.mp3"
-        request.setTitle(title)
-        request.setDescription("Đang tải vui lòng đợi")
-        var cookie = CookieManager.getInstance().getCookie(url)
-        request.addRequestHeader("cookie",cookie)
-        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,title)
-        var downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-        downloadManager.enqueue(request)
-        Toast.makeText(this, "Bắt đầu tải xuống", Toast.LENGTH_SHORT).show()
+        if(AppPreferences.isOnline){
+            var url = "http://api.mp3.zing.vn/api/streaming/${mSongOnline.type}/${mSongOnline.id}/320"
+            var uri = Uri.parse(url)
+            var request = DownloadManager.Request(uri)
+            var title = "${mSongOnline.name}.mp3"
+            request.setTitle(title)
+            request.setDescription("Đang tải vui lòng đợi")
+            var cookie = CookieManager.getInstance().getCookie(url)
+            request.addRequestHeader("cookie",cookie)
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,title)
+            var downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+            downloadManager.enqueue(request)
+            Toast.makeText(this, "Bắt đầu tải xuống", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setupRecommendSong() {
