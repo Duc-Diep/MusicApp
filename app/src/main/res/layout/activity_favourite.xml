@@ -8,6 +8,7 @@
     tools:context=".activities.FavouriteActivity">
 
     <androidx.core.widget.NestedScrollView
+        android:layout_marginBottom="70dp"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
         <LinearLayout
@@ -27,6 +28,7 @@
                 android:id="@+id/rcv_songs"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 android:orientation="vertical"
+
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
             <ProgressBar

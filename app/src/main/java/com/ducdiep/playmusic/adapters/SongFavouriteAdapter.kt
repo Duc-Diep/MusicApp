@@ -10,12 +10,14 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.ducdiep.playmusic.R
+import com.ducdiep.playmusic.config.isNetworkAvailable
+import com.ducdiep.playmusic.models.songoffline.SongFavourite
 import com.ducdiep.playmusic.models.songresponse.Song
 
-class SongOnlineAdapter(var context: Context,var listSong:List<Song>):RecyclerView.Adapter<SongOnlineAdapter.SongViewHolder>() {
-    var onClick:((Song)->Unit)?=null
+class SongFavouriteAdapter(var context: Context, var listSong:List<SongFavourite>):RecyclerView.Adapter<SongFavouriteAdapter.SongViewHolder>() {
+    var onClick:((SongFavourite)->Unit)?=null
 
-    fun setOnClickItem(callBack:(Song)->Unit){
+    fun setOnClickItem(callBack:(SongFavourite)->Unit){
         onClick = callBack
     }
     override fun onCreateViewHolder(
@@ -28,7 +30,11 @@ class SongOnlineAdapter(var context: Context,var listSong:List<Song>):RecyclerVi
 
     override fun onBindViewHolder(holder: SongViewHolder, position: Int) {
         var song = listSong[position]
-        Glide.with(context).load("${song.thumbnail}").into(holder.image)
+        if (song.url==""&& isNetworkAvailable(context)){
+            Glide.with(context).load("${song.thumbnail}").into(holder.image)
+        }else{
+            holder.image.setImageResource(R.drawable.musical_default)
+        }
         holder.tvName.text = song.name
         holder.tvName.setTextColor(Color.WHITE)
         holder.tvArtist.text = song.artists_names
@@ -41,7 +47,7 @@ class SongOnlineAdapter(var context: Context,var listSong:List<Song>):RecyclerVi
     override fun getItemCount(): Int {
         return listSong.size
     }
-    class SongViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class SongViewHolder(itemView: View) :RecyclerView.ViewHolder(itemView){
         var image = itemView.findViewById<ImageView>(R.id.img_song_online_item)
         var tvName = itemView.findViewById<TextView>(R.id.tv_song_online_name_item)
         var tvArtist = itemView.findViewById<TextView>(R.id.tv_song_online_artist_item)

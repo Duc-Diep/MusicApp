@@ -10,12 +10,14 @@ object AppPreferences {
     private lateinit var preferences: SharedPreferences
 
     private val INDEX_PLAYING = Pair("index",-1)
+    private val INDEX_SQL = Pair("index",0)
     private val IS_SHUFFLE = Pair("shuffle",false)
     private val IS_PLAYING = Pair("playing",false)
     private val IS_REPEAT_ONE = Pair("repeatone",false)
     private val IS_SERVICE_RUNNING = Pair("isServiceRunning",false)
     private val IS_ONLINE = Pair("isOnline",false)
     private val IS_PLAY_REQUIRE_LIST = Pair("isPlayRequireList",false)
+    private val IS_PLAY_FAVOURITE_LIST = Pair("isPlayFavouriteList",false)
 
     fun init(context: Context?) {
         preferences = context?.getSharedPreferences(NAME, MODE)!!
@@ -30,6 +32,11 @@ object AppPreferences {
         get() = preferences.getInt(INDEX_PLAYING.first, INDEX_PLAYING.second)
         set(value) = preferences.edit {
             it.putInt(INDEX_PLAYING.first, value)
+        }
+    var indexSQL: Int
+        get() = preferences.getInt(INDEX_SQL.first, INDEX_SQL.second)
+        set(value) = preferences.edit {
+            it.putInt(INDEX_SQL.first, value)
         }
     var isShuffle: Boolean
         get() = preferences.getBoolean(IS_SHUFFLE.first, IS_SHUFFLE.second)
@@ -60,5 +67,10 @@ object AppPreferences {
         get() = preferences.getBoolean(IS_PLAY_REQUIRE_LIST.first, IS_PLAY_REQUIRE_LIST.second)
         set(value) = preferences.edit {
             it.putBoolean(IS_PLAY_REQUIRE_LIST.first, value)
+        }
+    var isPlayFavouriteList: Boolean
+        get() = preferences.getBoolean(IS_PLAY_FAVOURITE_LIST.first, IS_PLAY_FAVOURITE_LIST.second)
+        set(value) = preferences.edit {
+            it.putBoolean(IS_PLAY_FAVOURITE_LIST.first, value)
         }
 }

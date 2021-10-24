@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.BitmapFactory
 import android.net.ConnectivityManager
 import android.os.Bundle
 import android.os.Handler
@@ -29,14 +30,18 @@ import com.ducdiep.playmusic.api.RetrofitInstance
 import com.ducdiep.playmusic.api.SongService
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.MyApplication
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongFavourite
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.models.search.ResponseSearch
 import com.ducdiep.playmusic.models.search.SongSearch
+import com.ducdiep.playmusic.models.songoffline.SongFavourite
 import com.ducdiep.playmusic.models.songoffline.SongOffline
 import com.ducdiep.playmusic.models.songresponse.ResponseTopSong
 import com.ducdiep.playmusic.models.songresponse.Song
 import com.ducdiep.playmusic.services.MusicService
+import kotlinx.android.synthetic.main.activity_favourite.*
 import kotlinx.android.synthetic.main.activity_home.*
 import kotlinx.android.synthetic.main.activity_home.btn_close
 import kotlinx.android.synthetic.main.activity_home.btn_next
@@ -61,12 +66,12 @@ class HomeActivity : AppCompatActivity() {
             handleLayoutPlay(action)
         }
     }
-    var networkBroadcast:BroadcastReceiver = object :BroadcastReceiver(){
+    var networkBroadcast: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (ConnectivityManager.CONNECTIVITY_ACTION == intent?.action){
-                if (isNetworkAvailable(context!!)){
+            if (ConnectivityManager.CONNECTIVITY_ACTION == intent?.action) {
+                if (isNetworkAvailable(context!!)) {
                     loadData()
-                }else{
+                } else {
                     loadData()
                 }
             }
@@ -75,6 +80,7 @@ class HomeActivity : AppCompatActivity() {
     }
     lateinit var mSongOffline: SongOffline
     lateinit var mSongOnline: Song
+    lateinit var mSongFavourite: SongFavourite
     lateinit var glide: RequestManager
     lateinit var songService: SongService
     lateinit var songServiceSearch: SongService
@@ -108,12 +114,13 @@ class HomeActivity : AppCompatActivity() {
                 ) {
                     if (response.isSuccessful) {
                         var data = response.body()
-                        if (data!!.data.size>0){
+                        if (data!!.data.size > 0) {
                             listSearch = data?.data!![0].song
                             setupDataSearch(listSearch)
                         }
                         progressbar_search.visibility = View.GONE
-                        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                        val imm =
+                            getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                         imm?.hideSoftInputFromWindow(edt_search.windowToken, 0)
                     }
                 }
@@ -178,7 +185,7 @@ class HomeActivity : AppCompatActivity() {
             var intent = Intent(this, ListOfflineActivity::class.java)
             startActivity(intent)
         }
-        img_favourite_home.setOnClickListener{
+        img_favourite_home.setOnClickListener {
             var intent = Intent(this, FavouriteActivity::class.java)
             startActivity(intent)
         }
@@ -214,13 +221,14 @@ class HomeActivity : AppCompatActivity() {
             startActivity(intent)
         }
     }
-    fun loadData(){
-        if (!isNetworkAvailable(this)){
+
+    fun loadData() {
+        if (!isNetworkAvailable(this)) {
             layout_search.visibility = View.GONE
             layout_slide.visibility = View.GONE
             layout_title_top_song.visibility = View.GONE
             rcv_top_songs.visibility = View.GONE
-        }else{
+        } else {
             layout_search.visibility = View.VISIBLE
             layout_slide.visibility = View.VISIBLE
             layout_title_top_song.visibility = View.VISIBLE
@@ -231,7 +239,7 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    fun init(){
+    fun init() {
         loadData()
         AppPreferences.init(this)
         glide = Glide.with(this)
@@ -258,6 +266,7 @@ class HomeActivity : AppCompatActivity() {
             ACTION_PREVIOUS -> showDetailMusic()
         }
     }
+
     fun setStatusButton() {
         if (AppPreferences.isPlaying) {
             btn_play_or_pause.setImageResource(R.drawable.pause)
@@ -267,24 +276,47 @@ class HomeActivity : AppCompatActivity() {
     }
 
     fun showDetailMusic() {
-        if (AppPreferences.isOnline){
-            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-            var linkImage = mSongOnline.thumbnail
-            glide.load(linkImage).into(img_song)
-            tv_name.text = mSongOnline.name
-            tv_name.isSelected = true
-            tv_single.text = mSongOnline.artists_names
-            tv_single.isSelected = true
-        }else{
-            mSongOffline = MyApplication.listSongOffline[AppPreferences.indexPlaying]
-            img_song.setImageBitmap(mSongOffline.imageBitmap)
-            tv_name.text = mSongOffline.name
-            tv_name.isSelected = true
-            tv_single.text = mSongOffline.artist
-            tv_single.isSelected = true
-            tv_single.isFocusable = true
+        if (AppPreferences.isPlayFavouriteList) {
+            mSongFavourite = listSongFavourite[AppPreferences.indexPlaying]
+            if (mSongFavourite.url == "") {
+                var linkImage = mSongFavourite.thumbnail
+                glide.load(linkImage).into(img_song)
+                tv_name.text = mSongFavourite.name
+                tv_name.isSelected = true
+                tv_single.text = mSongFavourite.artists_names
+                tv_single.isSelected = true
+            } else {
+                img_song.setImageBitmap(
+                    BitmapFactory.decodeResource(
+                        resources,
+                        R.drawable.musical_default
+                    )
+                )
+                tv_name.text = mSongFavourite.name
+                tv_name.isSelected = true
+                tv_single.text = mSongFavourite.artists_names
+                tv_single.isSelected = true
+                tv_single.isFocusable = true
+            }
+        } else {
+            if (AppPreferences.isOnline) {
+                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+                var linkImage = mSongOnline.thumbnail
+                glide.load(linkImage).into(img_song)
+                tv_name.text = mSongOnline.name
+                tv_name.isSelected = true
+                tv_single.text = mSongOnline.artists_names
+                tv_single.isSelected = true
+            } else {
+                mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+                img_song.setImageBitmap(mSongOffline.imageBitmap)
+                tv_name.text = mSongOffline.name
+                tv_name.isSelected = true
+                tv_single.text = mSongOffline.artist
+                tv_single.isSelected = true
+                tv_single.isFocusable = true
+            }
         }
-
     }
 
     //create popup
@@ -307,6 +339,7 @@ class HomeActivity : AppCompatActivity() {
         }
         popupMenu.show()
     }
+
     private fun searchByVoice(s: String) {
         when (s) {
             "vi" -> {
@@ -404,6 +437,7 @@ class HomeActivity : AppCompatActivity() {
             AppPreferences.indexPlaying = it.position - 1
             AppPreferences.isOnline = true
             AppPreferences.isPlayRequireList = true
+            AppPreferences.isPlayFavouriteList = false
             var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)
             sendActionToService(ACTION_START)
@@ -431,6 +465,7 @@ class HomeActivity : AppCompatActivity() {
             AppPreferences.indexPlaying = 0
             AppPreferences.isOnline = true
             AppPreferences.isPlayRequireList = false
+            AppPreferences.isPlayFavouriteList = false
             var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)
             sendActionToService(ACTION_START)
@@ -454,7 +489,7 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         handler.postDelayed(runSlide, 2000)
-        if (AppPreferences.indexPlaying!=-1){
+        if (AppPreferences.indexPlaying != -1) {
             showDetailMusic()
             setStatusButton()
         }
@@ -472,9 +507,11 @@ class HomeActivity : AppCompatActivity() {
         } else {
             AlertDialog.Builder(this).setTitle("Xác nhận")
                 .setMessage("Bạn có chắc muốn thoát app không?")
-                .setPositiveButton("Có"
+                .setPositiveButton(
+                    "Có"
                 ) { dialog, which -> finish() }
-                .setNegativeButton("Không"
+                .setNegativeButton(
+                    "Không"
                 ) { dialog, which -> }
                 .show()
         }
@@ -484,8 +521,9 @@ class HomeActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         var intentfilter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
-        registerReceiver(networkBroadcast,intentfilter)
+        registerReceiver(networkBroadcast, intentfilter)
     }
+
     override fun onDestroy() {
         super.onDestroy()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)

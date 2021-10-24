@@ -3,6 +3,7 @@ package com.ducdiep.playmusic.activities
 import android.animation.ObjectAnimator
 import android.app.DownloadManager
 import android.content.*
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.os.*
@@ -22,11 +23,13 @@ import com.ducdiep.playmusic.adapters.SongOnlineAdapter
 import com.ducdiep.playmusic.api.RetrofitInstance
 import com.ducdiep.playmusic.api.SongService
 import com.ducdiep.playmusic.app.AppPreferences
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongFavourite
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.helpers.SqlHelper
 import com.ducdiep.playmusic.models.getgenres.ResponseInfor
+import com.ducdiep.playmusic.models.songoffline.SongFavourite
 import com.ducdiep.playmusic.models.songoffline.SongOffline
 import com.ducdiep.playmusic.models.songresponse.ResponseRecommend
 import com.ducdiep.playmusic.models.songresponse.Song
@@ -81,6 +84,7 @@ class PlayMusicActivity : AppCompatActivity() {
     //variables
     lateinit var mSongOffline: SongOffline
     lateinit var mSongOnline: Song
+    lateinit var mSongFavourite: SongFavourite
     lateinit var glide:RequestManager
     lateinit var anim: ObjectAnimator
     var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -178,6 +182,16 @@ class PlayMusicActivity : AppCompatActivity() {
                 }else{
                     sqlHelper.addSong(mSongOnline)
                     Toast.makeText(this, "Đã thêm bài hát vào danh sách yêu thích", Toast.LENGTH_SHORT).show()
+                    img_favourite.setImageResource(R.drawable.like)
+                }
+            }else{
+                if (sqlHelper.checkExistsOff(mSongOffline.resource)){
+                    sqlHelper.removeSongOff(mSongOffline.resource)
+                    img_favourite.setImageResource(R.drawable.unlike)
+                    Toast.makeText(this, "Đã xóa bài hát khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show()
+                }else{
+                    sqlHelper.addSongOff(mSongOffline)
+                    Toast.makeText(this, "Đã thêm bài hát off vào danh sách yêu thích", Toast.LENGTH_SHORT).show()
                     img_favourite.setImageResource(R.drawable.like)
                 }
             }
@@ -305,51 +319,110 @@ class PlayMusicActivity : AppCompatActivity() {
     }
 
     fun showDetailMusic() {
-        if (AppPreferences.isOnline){
-            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-            var linkImage = mSongOnline.thumbnail.replaceFirst("w94_r1x1_jpeg/","")
-            glide.load(linkImage).into(img_music)
-            tv_song_name.text = mSongOnline.name
-            tv_song_name.isSelected = true
-            songService.getSongInfor(mSongOnline.type,mSongOnline.id).enqueue(object :Callback<ResponseInfor>{
-                override fun onResponse(
-                    call: Call<ResponseInfor>,
-                    response: Response<ResponseInfor>
-                ) {
-                    if (response.isSuccessful){
-                        var data = response.body()
-                        if (data!!.data.genres.size>1){
-                            tv_artist.text ="${mSongOnline.artists_names}   ${data.data.genres[1].name}"
-                            tv_artist.isSelected = true
+        if (AppPreferences.isPlayFavouriteList){
+            mSongFavourite = listSongFavourite[AppPreferences.indexPlaying]
+            if (mSongFavourite.url==""){//online
+                var linkImage = mSongFavourite.thumbnail.replaceFirst("w94_r1x1_jpeg/","")
+                glide.load(linkImage).into(img_music)
+                tv_song_name.text = mSongFavourite.name
+                tv_song_name.isSelected = true
+                songService.getSongInfor(mSongFavourite.type,mSongFavourite.id).enqueue(object :Callback<ResponseInfor>{
+                    override fun onResponse(
+                        call: Call<ResponseInfor>,
+                        response: Response<ResponseInfor>
+                    ) {
+                        if (response.isSuccessful){
+                            var data = response.body()
+                            if (data!!.data.genres.size>1){
+                                tv_artist.text ="${mSongFavourite.artists_names}   ${data.data.genres[1].name}"
+                                tv_artist.isSelected = true
+                            }
                         }
                     }
+
+                    override fun onFailure(call: Call<ResponseInfor>, t: Throwable) {
+
+                    }
+
+                })
+
+                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+                if (sqlHelper.checkExists(mSongFavourite.id)){
+                    img_favourite.setImageResource(R.drawable.like)
+                }else{
+                    img_favourite.setImageResource(R.drawable.unlike)
                 }
+            }else{//offline
+                img_music.setImageBitmap(BitmapFactory.decodeResource(resources, R.drawable.musical_default))
+                tv_song_name.text = mSongFavourite.name
+                tv_song_name.isSelected = true
+                tv_artist.text = "${mSongFavourite.artists_names}"
 
-                override fun onFailure(call: Call<ResponseInfor>, t: Throwable) {
+                if (sqlHelper.checkExistsOff(mSongFavourite.url)){
+                    img_favourite.setImageResource(R.drawable.like)
+                }else{
+                    img_favourite.setImageResource(R.drawable.unlike)
 
                 }
-
-            })
-
-            img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
-            if (sqlHelper.checkExists(mSongOnline.id)){
-                img_favourite.setImageResource(R.drawable.like)
-            }else{
-                img_favourite.setImageResource(R.drawable.unlike)
+                tv_artist.isSelected = true
+                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
             }
         }else{
-            mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-            img_music.setImageBitmap(mSongOffline.imageBitmap)
-            tv_song_name.text = mSongOffline.name
-            tv_song_name.isSelected = true
-            if (mSongOffline.genres!="null"){
-                tv_artist.text = "${mSongOffline.artist}   ${mSongOffline.genres}"
+            if (AppPreferences.isOnline){
+                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+                var linkImage = mSongOnline.thumbnail.replaceFirst("w94_r1x1_jpeg/","")
+                glide.load(linkImage).into(img_music)
+                tv_song_name.text = mSongOnline.name
+                tv_song_name.isSelected = true
+                songService.getSongInfor(mSongOnline.type,mSongOnline.id).enqueue(object :Callback<ResponseInfor>{
+                    override fun onResponse(
+                        call: Call<ResponseInfor>,
+                        response: Response<ResponseInfor>
+                    ) {
+                        if (response.isSuccessful){
+                            var data = response.body()
+                            if (data!!.data.genres.size>1){
+                                tv_artist.text ="${mSongOnline.artists_names}   ${data.data.genres[1].name}"
+                                tv_artist.isSelected = true
+                            }
+                        }
+                    }
+
+                    override fun onFailure(call: Call<ResponseInfor>, t: Throwable) {
+
+                    }
+
+                })
+
+                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+                if (sqlHelper.checkExists(mSongOnline.id)){
+                    img_favourite.setImageResource(R.drawable.like)
+                }else{
+                    img_favourite.setImageResource(R.drawable.unlike)
+                }
+
             }else{
-                tv_artist.text = "${mSongOffline.artist}"
+                mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+                img_music.setImageBitmap(mSongOffline.imageBitmap)
+                tv_song_name.text = mSongOffline.name
+                tv_song_name.isSelected = true
+                if (mSongOffline.genres!="null"){
+                    tv_artist.text = "${mSongOffline.artist}   ${mSongOffline.genres}"
+                }else{
+                    tv_artist.text = "${mSongOffline.artist}"
+                }
+
+                if (sqlHelper.checkExistsOff(mSongOffline.resource)){
+                    img_favourite.setImageResource(R.drawable.like)
+                }else{
+                    img_favourite.setImageResource(R.drawable.unlike)
+
+                }
+                tv_artist.isSelected = true
+                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
             }
-            tv_artist.isSelected = true
-            img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
         }
+
 
     }
 

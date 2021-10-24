@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import com.ducdiep.playmusic.models.songoffline.SongFavourite
 import com.ducdiep.playmusic.models.songoffline.SongOffline
 import com.ducdiep.playmusic.models.songresponse.Song
 
@@ -14,6 +15,7 @@ class MyApplication : Application() {
     companion object{
         var listSongOffline:ArrayList<SongOffline> = ArrayList()
         var listSongOnline:ArrayList<Song> = ArrayList()
+        var listSongFavourite:ArrayList<SongFavourite> = ArrayList()
     }
 
     override fun onCreate() {

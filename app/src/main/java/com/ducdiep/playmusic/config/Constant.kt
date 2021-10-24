@@ -129,4 +129,5 @@ fun reloadData() {
     AppPreferences.isServiceRunning = false
     AppPreferences.isOnline = false
     AppPreferences.isPlayRequireList = false
+    AppPreferences.isPlayFavouriteList = false
 }

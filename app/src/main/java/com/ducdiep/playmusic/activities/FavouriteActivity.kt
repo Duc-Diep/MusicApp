@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.BitmapFactory
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.speech.RecognizerIntent
@@ -13,13 +14,16 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
 import com.ducdiep.playmusic.R
+import com.ducdiep.playmusic.adapters.SongFavouriteAdapter
 import com.ducdiep.playmusic.adapters.SongOfflineAdapter
 import com.ducdiep.playmusic.adapters.SongOnlineAdapter
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.MyApplication
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongFavourite
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.config.*
 import com.ducdiep.playmusic.helpers.SqlHelper
+import com.ducdiep.playmusic.models.songoffline.SongFavourite
 import com.ducdiep.playmusic.models.songoffline.SongOffline
 import com.ducdiep.playmusic.models.songresponse.Song
 import com.ducdiep.playmusic.services.MusicService
@@ -37,10 +41,11 @@ class FavouriteActivity : AppCompatActivity() {
     }
     lateinit var mSongOffline: SongOffline
     lateinit var mSongOnline: Song
+    lateinit var mSongFavourite: SongFavourite
     lateinit var glide: RequestManager
-    lateinit var sqlHelper:SqlHelper
-    lateinit var songOnlineAdapter:SongOnlineAdapter
-    lateinit var listSong:List<Song>
+    lateinit var sqlHelper: SqlHelper
+    lateinit var songOnlineAdapter: SongFavouriteAdapter
+    lateinit var listSong: List<SongFavourite>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_favourite)
@@ -54,11 +59,12 @@ class FavouriteActivity : AppCompatActivity() {
             handleLayoutPlay(ACTION_START)
         }
         btn_play_list.setOnClickListener {
-            listSongOnline.clear()
-            listSongOnline.addAll(listSong)
+            listSongFavourite.clear()
+            listSongFavourite.addAll(listSong)
             AppPreferences.indexPlaying = 0
-            AppPreferences.isOnline = true
+            AppPreferences.isOnline = false
             AppPreferences.isPlayRequireList = true
+            AppPreferences.isPlayFavouriteList = true
             sendActionToService(ACTION_START)
             var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)
@@ -87,21 +93,24 @@ class FavouriteActivity : AppCompatActivity() {
             startActivity(intent)
         }
     }
+
     private fun setupAdapter() {
         listSong = sqlHelper.getAllSong()
-        songOnlineAdapter = SongOnlineAdapter(this, listSong)
+        songOnlineAdapter = SongFavouriteAdapter(this, listSong)
         songOnlineAdapter.setOnClickItem {
-            listSongOnline.clear()
-            listSongOnline.addAll(listSong)
+            listSongFavourite.clear()
+            listSongFavourite.addAll(listSong)
             AppPreferences.indexPlaying = listSong.indexOf(it)
-            AppPreferences.isOnline = true
+            AppPreferences.isOnline = false
             AppPreferences.isPlayRequireList = true
+            AppPreferences.isPlayFavouriteList = true
             sendActionToService(ACTION_START)
             var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)
         }
         rcv_songs.adapter = songOnlineAdapter
     }
+
     fun sendActionToService(action: Int) {
         var intent = Intent(this, MusicService::class.java)
         intent.putExtra(ACTION_TO_SERVICE, action)
@@ -127,25 +136,51 @@ class FavouriteActivity : AppCompatActivity() {
     }
 
     fun showDetailMusic() {
-        if (AppPreferences.isOnline){
-            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-            var linkImage = mSongOnline.thumbnail
-            glide.load(linkImage).into(img_song)
-            tv_name.text = mSongOnline.name
-            tv_name.isSelected = true
-            tv_single.text = mSongOnline.artists_names
-            tv_single.isSelected = true
-        }else{
-            mSongOffline = MyApplication.listSongOffline[AppPreferences.indexPlaying]
-            img_song.setImageBitmap(mSongOffline.imageBitmap)
-            tv_name.text = mSongOffline.name
-            tv_name.isSelected = true
-            tv_single.text = mSongOffline.artist
-            tv_single.isSelected = true
-            tv_single.isFocusable = true
+        if (AppPreferences.isPlayFavouriteList) {
+            mSongFavourite = listSongFavourite[AppPreferences.indexPlaying]
+            if (mSongFavourite.url == "") {
+                var linkImage = mSongFavourite.thumbnail
+                glide.load(linkImage).into(img_song)
+                tv_name.text = mSongFavourite.name
+                tv_name.isSelected = true
+                tv_single.text = mSongFavourite.artists_names
+                tv_single.isSelected = true
+            } else {
+                img_song.setImageBitmap(
+                    BitmapFactory.decodeResource(
+                        resources,
+                        R.drawable.musical_default
+                    )
+                )
+                tv_name.text = mSongFavourite.name
+                tv_name.isSelected = true
+                tv_single.text = mSongFavourite.artists_names
+                tv_single.isSelected = true
+                tv_single.isFocusable = true
+            }
+        } else {
+            if (AppPreferences.isOnline) {
+                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+                var linkImage = mSongOnline.thumbnail
+                glide.load(linkImage).into(img_song)
+                tv_name.text = mSongOnline.name
+                tv_name.isSelected = true
+                tv_single.text = mSongOnline.artists_names
+                tv_single.isSelected = true
+            } else {
+                mSongOffline = MyApplication.listSongOffline[AppPreferences.indexPlaying]
+                img_song.setImageBitmap(mSongOffline.imageBitmap)
+                tv_name.text = mSongOffline.name
+                tv_name.isSelected = true
+                tv_single.text = mSongOffline.artist
+                tv_single.isSelected = true
+                tv_single.isFocusable = true
+            }
         }
 
+
     }
+
     fun setStatusButton() {
         if (AppPreferences.isPlaying) {
             btn_play_or_pause.setImageResource(R.drawable.pause)
@@ -153,6 +188,7 @@ class FavouriteActivity : AppCompatActivity() {
             btn_play_or_pause.setImageResource(R.drawable.play)
         }
     }
+
     override fun onDestroy() {
         super.onDestroy()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)

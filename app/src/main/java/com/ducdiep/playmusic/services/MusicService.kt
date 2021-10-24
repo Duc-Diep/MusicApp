@@ -18,6 +18,7 @@ import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.activities.PlayMusicActivity
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.CHANNEL_ID
+import com.ducdiep.playmusic.app.MyApplication.Companion.listSongFavourite
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.broadcasts.MyReceiver
@@ -145,100 +146,169 @@ class MusicService : Service() {
     }
 
     private fun startNewMusic() {
-        if (AppPreferences.isOnline) {
-            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-            startMusicOnline(AppPreferences.indexPlaying)
-            sendNotificationMedia(AppPreferences.indexPlaying)
-        } else {
-            mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-            startMusicOffline(AppPreferences.indexPlaying)
-            sendNotificationMedia(AppPreferences.indexPlaying)
+        if (AppPreferences.isPlayFavouriteList){
+            startFavouriteMusic(AppPreferences.indexPlaying)
+        }else{
+            if (AppPreferences.isOnline) {
+                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+                startMusicOnline(AppPreferences.indexPlaying)
+                sendNotificationMedia(AppPreferences.indexPlaying)
+            } else {
+                mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+                startMusicOffline(AppPreferences.indexPlaying)
+                sendNotificationMedia(AppPreferences.indexPlaying)
+            }
         }
+
 
     }
 
-    fun playPreviousMusic() {
-        if (AppPreferences.isOnline && isNetworkAvailable(this)) {
-            if (AppPreferences.indexPlaying == 0) {
-                startMusicOnline(listSongOnline.size - 1)
-                AppPreferences.indexPlaying = listSongOnline.size - 1
-            } else {
-                startMusicOnline(AppPreferences.indexPlaying - 1)
-                AppPreferences.indexPlaying = AppPreferences.indexPlaying - 1
+    private fun startFavouriteMusic(index :Int) {
+        var song = listSongFavourite[index]
+        if (song.url==""){//online
+            if (mediaPlayer == null) {
+                mediaPlayer = MediaPlayer()
             }
-        } else {
-            if (AppPreferences.isShuffle) {
-                if (listPreviousRandom.size > 0) {
-                    if (listPreviousRandom.size == 1) {
-                        var index = listPreviousRandom.size - 1
-                        startMusicOffline(listPreviousRandom[index])
-                        AppPreferences.indexPlaying = listPreviousRandom[index]
-                        listPreviousRandom.removeLastOrNull()
-                    } else {
-                        var index = listPreviousRandom.size - 2
-                        startMusicOffline(listPreviousRandom[index])
-                        AppPreferences.indexPlaying = listPreviousRandom[index]
-                        listPreviousRandom.removeLastOrNull()
-                    }
-
+            mediaPlayer!!.reset()
+            mediaPlayer!!.setDataSource(
+                this,
+                Uri.parse("http://api.mp3.zing.vn/api/streaming/${song.type}/${song.id}/128")
+            )
+            mediaPlayer!!.prepare()
+            mediaPlayer?.start()
+            AppPreferences.isPlaying = true
+            sendActionToActivity(ACTION_START)
+            mediaPlayer!!.setOnCompletionListener {
+                if (AppPreferences.isRepeatOne) {
+                    startFavouriteMusic(AppPreferences.indexPlaying)
                 } else {
-                    if (listRandomed.size == 0) {
-                        reloadListRandom()
-                    }
-                    var rd = (0 until listRandomed!!.size).random()
-                    AppPreferences.indexPlaying = listRandomed[rd]
-                    startMusicOffline(listRandomed[rd])
-                    if (listRandomed.size == 0) {
-                        reloadListRandom()
-                    }
+                    playNextMusic()
                 }
-            } else {
-                if (AppPreferences.indexPlaying == 0) {
-                    startMusicOffline(listSongOffline!!.size - 1)
-                    AppPreferences.indexPlaying = listSongOffline!!.size - 1
+            }
+        }else{
+            if (mediaPlayer == null) {
+                mediaPlayer = MediaPlayer()
+            }
+            mediaPlayer!!.reset()
+            mediaPlayer!!.setDataSource(this, Uri.parse(song.url))
+            mediaPlayer!!.prepare()
+            mediaPlayer?.start()
+            AppPreferences.isPlaying = true
+            sendActionToActivity(ACTION_START)
+            mediaPlayer!!.setOnCompletionListener {
+                if (AppPreferences.isRepeatOne) {
+                    startFavouriteMusic(AppPreferences.indexPlaying)
                 } else {
-                    startMusicOffline(AppPreferences.indexPlaying - 1)
-                    AppPreferences.indexPlaying = AppPreferences.indexPlaying - 1
+                    playNextMusic()
                 }
             }
         }
+    }
+
+    fun playPreviousMusic() {
+        if (AppPreferences.isPlayFavouriteList){
+            if (AppPreferences.indexPlaying == 0) {
+                startFavouriteMusic(listSongFavourite.size - 1)
+                AppPreferences.indexPlaying = listSongOnline.size - 1
+            } else {
+                startFavouriteMusic(AppPreferences.indexPlaying - 1)
+                AppPreferences.indexPlaying = AppPreferences.indexPlaying - 1
+            }
+        }else{
+            if (AppPreferences.isOnline && isNetworkAvailable(this)) {
+                if (AppPreferences.indexPlaying == 0) {
+                    startMusicOnline(listSongOnline.size - 1)
+                    AppPreferences.indexPlaying = listSongOnline.size - 1
+                } else {
+                    startMusicOnline(AppPreferences.indexPlaying - 1)
+                    AppPreferences.indexPlaying = AppPreferences.indexPlaying - 1
+                }
+            } else {
+                if (AppPreferences.isShuffle) {
+                    if (listPreviousRandom.size > 0) {
+                        if (listPreviousRandom.size == 1) {
+                            var index = listPreviousRandom.size - 1
+                            startMusicOffline(listPreviousRandom[index])
+                            AppPreferences.indexPlaying = listPreviousRandom[index]
+                            listPreviousRandom.removeLastOrNull()
+                        } else {
+                            var index = listPreviousRandom.size - 2
+                            startMusicOffline(listPreviousRandom[index])
+                            AppPreferences.indexPlaying = listPreviousRandom[index]
+                            listPreviousRandom.removeLastOrNull()
+                        }
+
+                    } else {
+                        if (listRandomed.size == 0) {
+                            reloadListRandom()
+                        }
+                        var rd = (0 until listRandomed!!.size).random()
+                        AppPreferences.indexPlaying = listRandomed[rd]
+                        startMusicOffline(listRandomed[rd])
+                        if (listRandomed.size == 0) {
+                            reloadListRandom()
+                        }
+                    }
+                } else {
+                    if (AppPreferences.indexPlaying == 0) {
+                        startMusicOffline(listSongOffline!!.size - 1)
+                        AppPreferences.indexPlaying = listSongOffline!!.size - 1
+                    } else {
+                        startMusicOffline(AppPreferences.indexPlaying - 1)
+                        AppPreferences.indexPlaying = AppPreferences.indexPlaying - 1
+                    }
+                }
+            }
+        }
+
 
         sendNotificationMedia(AppPreferences.indexPlaying)
         sendActionToActivity(ACTION_PREVIOUS)
     }
 
     fun playNextMusic() {
-        if (AppPreferences.isOnline && isNetworkAvailable(this)) {
-            if (AppPreferences.indexPlaying == listSongOnline.size - 1) {
-                startMusicOnline(0)
+        if (AppPreferences.isPlayFavouriteList){
+            if (AppPreferences.indexPlaying == listSongFavourite.size - 1) {
+                startFavouriteMusic(0)
                 AppPreferences.indexPlaying = 0
             } else {
-                startMusicOnline(AppPreferences.indexPlaying + 1)
+                startFavouriteMusic(AppPreferences.indexPlaying + 1)
                 AppPreferences.indexPlaying = AppPreferences.indexPlaying + 1
             }
-        } else {
-            if (!AppPreferences.isOnline) {
-                if (AppPreferences.isShuffle) {
-                    if (listRandomed.size == 0) {
-                        reloadListRandom()
-                    }
-                    var rd = (0 until listRandomed.size).random()
-                    AppPreferences.indexPlaying = listRandomed[rd]
-                    listPreviousRandom.add(listRandomed[rd])
-                    startMusicOffline(listRandomed[rd])
-
+        }else{
+            if (AppPreferences.isOnline && isNetworkAvailable(this)) {
+                if (AppPreferences.indexPlaying == listSongOnline.size - 1) {
+                    startMusicOnline(0)
+                    AppPreferences.indexPlaying = 0
                 } else {
-                    if (AppPreferences.indexPlaying == listSongOffline.size - 1) {
-                        startMusicOffline(0)
-                        AppPreferences.indexPlaying = 0
+                    startMusicOnline(AppPreferences.indexPlaying + 1)
+                    AppPreferences.indexPlaying = AppPreferences.indexPlaying + 1
+                }
+            } else {
+                if (!AppPreferences.isOnline) {
+                    if (AppPreferences.isShuffle) {
+                        if (listRandomed.size == 0) {
+                            reloadListRandom()
+                        }
+                        var rd = (0 until listRandomed.size).random()
+                        AppPreferences.indexPlaying = listRandomed[rd]
+                        listPreviousRandom.add(listRandomed[rd])
+                        startMusicOffline(listRandomed[rd])
+
                     } else {
-                        startMusicOffline(AppPreferences.indexPlaying + 1)
-                        AppPreferences.indexPlaying = AppPreferences.indexPlaying + 1
+                        if (AppPreferences.indexPlaying == listSongOffline.size - 1) {
+                            startMusicOffline(0)
+                            AppPreferences.indexPlaying = 0
+                        } else {
+                            startMusicOffline(AppPreferences.indexPlaying + 1)
+                            AppPreferences.indexPlaying = AppPreferences.indexPlaying + 1
+                        }
                     }
                 }
-            }
 
+            }
         }
+
 
         sendNotificationMedia(AppPreferences.indexPlaying)
         sendActionToActivity(ACTION_NEXT)
@@ -326,24 +396,43 @@ class MusicService : Service() {
 
     fun sendNotificationMedia(index: Int) {
         mediaSession = MediaSessionCompat(this, "tag")
-
-        if (AppPreferences.isOnline) {
-            var songOn = listSongOnline[index]
-            var name = songOn.name
-            var artist = songOn.artists_names
-            var duration = songOn.duration * 1000
-            GlobalScope.launch(Dispatchers.Main) {
-                var bitmap = getBitmapFromURL(songOn.thumbnail)
+        if (AppPreferences.isPlayFavouriteList){
+            var song = listSongFavourite[index]
+            if (song.url==""){
+                var name = song.name
+                var artist = song.artists_names
+                var duration = song.duration * 1000
+                GlobalScope.launch(Dispatchers.Main) {
+                    var bitmap = getBitmapFromURL(song.thumbnail)
+                    showNotification(bitmap, name, artist, duration)
+                }
+            }else{
+                var bitmap = BitmapFactory.decodeResource(resources, R.drawable.musical_default)
+                var name = song.name
+                var artist = song.artists_names
+                var duration = song.duration
                 showNotification(bitmap, name, artist, duration)
             }
-        } else {
-            var songOff = listSongOffline[index]
-            var bitmap = songOff.imageBitmap
-            var name = songOff.name
-            var artist = songOff.artist
-            var duration = songOff.duration
-            showNotification(bitmap, name, artist, duration)
+        }else{
+            if (AppPreferences.isOnline) {
+                var songOn = listSongOnline[index]
+                var name = songOn.name
+                var artist = songOn.artists_names
+                var duration = songOn.duration * 1000
+                GlobalScope.launch(Dispatchers.Main) {
+                    var bitmap = getBitmapFromURL(songOn.thumbnail)
+                    showNotification(bitmap, name, artist, duration)
+                }
+            } else {
+                var songOff = listSongOffline[index]
+                var bitmap = songOff.imageBitmap
+                var name = songOff.name
+                var artist = songOff.artist
+                var duration = songOff.duration
+                showNotification(bitmap, name, artist, duration)
+            }
         }
+
 
     }
 

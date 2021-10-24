@@ -3,6 +3,7 @@ package com.ducdiep.playmusic.activities
 import android.Manifest
 import android.content.*
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Handler
 import android.speech.RecognizerIntent
@@ -21,13 +22,26 @@ import com.bumptech.glide.RequestManager
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.adapters.SongOfflineAdapter
 import com.ducdiep.playmusic.app.AppPreferences
+import com.ducdiep.playmusic.app.MyApplication
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOnline
 import com.ducdiep.playmusic.config.*
+import com.ducdiep.playmusic.models.songoffline.SongFavourite
 import com.ducdiep.playmusic.models.songoffline.SongOffline
 import com.ducdiep.playmusic.models.songresponse.Song
 import com.ducdiep.playmusic.services.MusicService
+import kotlinx.android.synthetic.main.activity_favourite.*
 import kotlinx.android.synthetic.main.activity_list_offline.*
+import kotlinx.android.synthetic.main.activity_list_offline.btn_close
+import kotlinx.android.synthetic.main.activity_list_offline.btn_next
+import kotlinx.android.synthetic.main.activity_list_offline.btn_play_or_pause
+import kotlinx.android.synthetic.main.activity_list_offline.btn_previous
+import kotlinx.android.synthetic.main.activity_list_offline.img_song
+import kotlinx.android.synthetic.main.activity_list_offline.layout_playing
+import kotlinx.android.synthetic.main.activity_list_offline.layout_title
+import kotlinx.android.synthetic.main.activity_list_offline.rcv_songs
+import kotlinx.android.synthetic.main.activity_list_offline.tv_name
+import kotlinx.android.synthetic.main.activity_list_offline.tv_single
 import kotlinx.android.synthetic.main.activity_play_music.*
 import java.util.*
 import kotlin.collections.ArrayList
@@ -35,6 +49,7 @@ import kotlin.collections.ArrayList
 class ListOfflineActivity : AppCompatActivity() {
     lateinit var mSongOffline: SongOffline
     lateinit var mSongOnline: Song
+    lateinit var mSongFavourite: SongFavourite
     lateinit var glide: RequestManager
     lateinit var songOfflineAdapter: SongOfflineAdapter
     private val searcByvoice =
@@ -132,13 +147,13 @@ class ListOfflineActivity : AppCompatActivity() {
 
     }
 
-    fun init(){
+    fun init() {
         AppPreferences.init(this)
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.READ_EXTERNAL_STORAGE
             ) != PackageManager.PERMISSION_GRANTED
-        ){
+        ) {
             listSongOffline = getAudio(this)
         }
         supportActionBar?.hide()
@@ -197,24 +212,47 @@ class ListOfflineActivity : AppCompatActivity() {
     }
 
     fun showDetailMusic() {
-        if (AppPreferences.isOnline){
-            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-            var linkImage = mSongOnline.thumbnail
-            glide.load(linkImage).into(img_song)
-            tv_name.text = mSongOnline.name
-            tv_name.isSelected = true
-            tv_single.text = mSongOnline.artists_names
-            tv_single.isSelected = true
-        }else{
-            mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-            img_song.setImageBitmap(mSongOffline.imageBitmap)
-            tv_name.text = mSongOffline.name
-            tv_name.isSelected = true
-            tv_single.text = mSongOffline.artist
-            tv_single.isSelected = true
-            tv_single.isFocusable = true
+        if (AppPreferences.isPlayFavouriteList) {
+            mSongFavourite = MyApplication.listSongFavourite[AppPreferences.indexPlaying]
+            if (mSongFavourite.url == "") {
+                var linkImage = mSongFavourite.thumbnail
+                glide.load(linkImage).into(img_song)
+                tv_name.text = mSongFavourite.name
+                tv_name.isSelected = true
+                tv_single.text = mSongFavourite.artists_names
+                tv_single.isSelected = true
+            } else {
+                img_song.setImageBitmap(
+                    BitmapFactory.decodeResource(
+                        resources,
+                        R.drawable.musical_default
+                    )
+                )
+                tv_name.text = mSongFavourite.name
+                tv_name.isSelected = true
+                tv_single.text = mSongFavourite.artists_names
+                tv_single.isSelected = true
+                tv_single.isFocusable = true
+            }
+        } else {
+            if (AppPreferences.isOnline) {
+                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+                var linkImage = mSongOnline.thumbnail
+                glide.load(linkImage).into(img_song)
+                tv_name.text = mSongOnline.name
+                tv_name.isSelected = true
+                tv_single.text = mSongOnline.artists_names
+                tv_single.isSelected = true
+            } else {
+                mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+                img_song.setImageBitmap(mSongOffline.imageBitmap)
+                tv_name.text = mSongOffline.name
+                tv_name.isSelected = true
+                tv_single.text = mSongOffline.artist
+                tv_single.isSelected = true
+                tv_single.isFocusable = true
+            }
         }
-
     }
 
     fun setStatusButton() {
