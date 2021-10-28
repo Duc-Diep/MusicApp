@@ -13,7 +13,6 @@ import androidx.core.content.ContextCompat
 import com.ducdiep.playmusic.R
 import com.ducdiep.playmusic.app.MyApplication.Companion.listSongOffline
 import com.ducdiep.playmusic.config.PERMISSION_REQUEST
-import com.ducdiep.playmusic.config.getAudio
 
 class SplashScreen : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,7 +38,6 @@ class SplashScreen : AppCompatActivity() {
             )
 
         } else {
-            listSongOffline = getAudio(this)
             Handler().postDelayed({
                 var intent = Intent(this, HomeActivity::class.java)
                 startActivity(intent)
@@ -62,7 +60,6 @@ class SplashScreen : AppCompatActivity() {
                         "Access permission read external success",
                         Toast.LENGTH_SHORT
                     ).show()
-                    listSongOffline = getAudio(this)
                 } else {
                     Toast.makeText(
                         this,

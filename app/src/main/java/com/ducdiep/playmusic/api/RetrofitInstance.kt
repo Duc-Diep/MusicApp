@@ -9,7 +9,7 @@ const val baseUrlSearch = "http://ac.mp3.zing.vn/"
 
 class RetrofitInstance {
     companion object{
-        fun getInstance(): Retrofit {
+        fun getInstance(): SongService? {
             var gson = GsonBuilder()
                 .setDateFormat("YYYY-MM-dd HH:mm:ss").create()
 
@@ -17,8 +17,9 @@ class RetrofitInstance {
                 .baseUrl(baseUrl)
                 .addConverterFactory(GsonConverterFactory.create(gson))
                 .build()
+                .create(SongService::class.java)
         }
-        fun getInstanceSearch(): Retrofit {
+        fun getInstanceSearch(): SongService? {
             var gson = GsonBuilder()
                 .setDateFormat("YYYY-MM-dd HH:mm:ss").create()
 
@@ -26,6 +27,7 @@ class RetrofitInstance {
                 .baseUrl(baseUrlSearch)
                 .addConverterFactory(GsonConverterFactory.create(gson))
                 .build()
+                .create(SongService::class.java)
         }
     }
 }

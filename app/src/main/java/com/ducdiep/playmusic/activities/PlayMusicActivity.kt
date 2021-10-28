@@ -104,7 +104,7 @@ class PlayMusicActivity : AppCompatActivity() {
         setContentView(R.layout.activity_play_music)
         supportActionBar?.hide()
         AppPreferences.init(this)
-        songService = RetrofitInstance.getInstance().create(SongService::class.java)
+        songService = RetrofitInstance.getInstance()!!
         glide = Glide.with(this)
         sqlHelper = SqlHelper(this)
         setStatusButton()

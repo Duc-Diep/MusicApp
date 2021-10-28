@@ -233,8 +233,8 @@ class HomeActivity : AppCompatActivity() {
             layout_slide.visibility = View.VISIBLE
             layout_title_top_song.visibility = View.VISIBLE
             rcv_top_songs.visibility = View.VISIBLE
-            songService = RetrofitInstance.getInstance().create(SongService::class.java)
-            songServiceSearch = RetrofitInstance.getInstanceSearch().create(SongService::class.java)
+            songService = RetrofitInstance.getInstance()!!
+            songServiceSearch = RetrofitInstance.getInstanceSearch()!!
             getTopSong()
         }
     }
