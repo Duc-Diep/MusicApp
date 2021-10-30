@@ -15,6 +15,7 @@ import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ducdiep.playmusic.R
+import com.ducdiep.playmusic.activities.HomeActivity
 import com.ducdiep.playmusic.activities.PlayMusicActivity
 import com.ducdiep.playmusic.app.AppPreferences
 import com.ducdiep.playmusic.app.CHANNEL_ID
@@ -36,7 +37,7 @@ class MusicService : Service() {
     var mediaPlayer: MediaPlayer? = null
     lateinit var mSongOffline: SongOffline
     lateinit var mSongOnline: Song
-    var currentPos: Int = 0
+//    var currentPos: Int = 0
     lateinit var mediaSession: MediaSessionCompat
     lateinit var playbackStateCompat: PlaybackStateCompat
 
@@ -316,7 +317,7 @@ class MusicService : Service() {
 
 
     fun pauseMusic() {
-        currentPos = mediaPlayer!!.currentPosition
+//        currentPos = mediaPlayer!!.currentPosition
         mediaPlayer!!.pause()
         AppPreferences.isPlaying = false
         sendNotificationMedia(AppPreferences.indexPlaying)
@@ -438,7 +439,7 @@ class MusicService : Service() {
 
     private fun showNotification(bitmap: Bitmap?, name: String, artist: String, duration: Int) {
         //pending intent mở app khi bấm vào notification
-        var intent = Intent(this, PlayMusicActivity::class.java)
+        var intent = Intent(this, HomeActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         var pendingIntent =
             PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
@@ -547,7 +548,7 @@ class MusicService : Service() {
         var intent = Intent(ACTION_SEND_TO_ACTIVITY)
         var bundle = Bundle()
         bundle.putInt(ACTION, action)
-        bundle.putInt(CURRENT_POSITION, currentPos)
+//        bundle.putInt(CURRENT_POSITION, currentPos)
         intent.putExtras(bundle)
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }

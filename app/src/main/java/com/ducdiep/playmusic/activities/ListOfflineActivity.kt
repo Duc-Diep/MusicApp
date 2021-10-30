@@ -47,7 +47,7 @@ class ListOfflineActivity : AppCompatActivity() {
     lateinit var glide: RequestManager
     lateinit var songOfflineAdapter: SongOfflineAdapter
     lateinit var viewModel: ListOfflineViewModel
-    lateinit var baseViewModel: HandleViewModel
+    lateinit var handleViewModel: HandleViewModel
     private val searcByvoice =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode == RESULT_OK && it.data != null) {
@@ -75,16 +75,16 @@ class ListOfflineActivity : AppCompatActivity() {
         setContentView(R.layout.activity_list_offline)
         init()
         btn_play_or_pause.setOnClickListener {
-            baseViewModel.onClickPlayOrPause()
+            handleViewModel.onClickPlayOrPause()
         }
         btn_close.setOnClickListener {
-            baseViewModel.onClickClose()
+            handleViewModel.onClickClose()
         }
         btn_next.setOnClickListener {
-            baseViewModel.onClickNext()
+            handleViewModel.onClickNext()
         }
         btn_previous.setOnClickListener {
-            baseViewModel.onClickPrevious()
+            handleViewModel.onClickPrevious()
 
         }
         layout_title.setOnClickListener {
@@ -117,20 +117,20 @@ class ListOfflineActivity : AppCompatActivity() {
 
     fun init() {
         viewModel = ViewModelProvider(this).get(ListOfflineViewModel::class.java)
-        baseViewModel = ViewModelProvider(this).get(HandleViewModel::class.java)
+        handleViewModel = ViewModelProvider(this).get(HandleViewModel::class.java)
         viewModel.fetchRepoList().observe(this,
             { t ->
                 listSongOffline = t as ArrayList<SongOffline>
                 setupAdapter()
             })
-        baseViewModel.isPlaying.observe(this, { t ->
+        handleViewModel.isPlaying.observe(this, { t ->
             if (t == true) {
                 btn_play_or_pause.setImageResource(R.drawable.pause)
             } else {
                 btn_play_or_pause.setImageResource(R.drawable.play)
             }
         })
-        baseViewModel.isVisibleLayout.observe(this,{ t ->
+        handleViewModel.isVisibleLayout.observe(this,{ t ->
              if (t==true){
                  layout_playing.visibility = View.VISIBLE
              }else{
@@ -138,11 +138,11 @@ class ListOfflineActivity : AppCompatActivity() {
              }
 
         })
-        baseViewModel.mSongOffline.observe(this,
+        handleViewModel.mSongOffline.observe(this,
             { t -> showMusicOffline(t) })
-        baseViewModel.mSongOnline.observe(this,
+        handleViewModel.mSongOnline.observe(this,
             { t -> showMusicOnline(t) })
-        baseViewModel.mSongFavourite.observe(this,
+        handleViewModel.mSongFavourite.observe(this,
             { t -> showMusicfavourite(t) })
         AppPreferences.init(this)
         supportActionBar?.hide()
@@ -210,7 +210,7 @@ class ListOfflineActivity : AppCompatActivity() {
             AppPreferences.indexPlaying = listSongOffline.indexOf(it)
             AppPreferences.isOnline = false
             AppPreferences.isPlayRequireList = true
-            baseViewModel.startMusic()
+            handleViewModel.startMusic()
             var intent = Intent(this@ListOfflineActivity, PlayMusicActivity::class.java)
             startActivity(intent)
         }
@@ -224,7 +224,7 @@ class ListOfflineActivity : AppCompatActivity() {
             AppPreferences.isOnline = false
             AppPreferences.indexPlaying = listSongOffline.indexOf(it)
             AppPreferences.isPlayRequireList = true
-            baseViewModel.startMusic()
+            handleViewModel.startMusic()
             var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)
 

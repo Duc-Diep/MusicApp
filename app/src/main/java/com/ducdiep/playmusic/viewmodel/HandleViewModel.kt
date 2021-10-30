@@ -24,7 +24,6 @@ import com.ducdiep.playmusic.models.songresponse.Song
 import com.ducdiep.playmusic.services.MusicService
 import kotlinx.android.synthetic.main.activity_list_offline.*
 
-//on click chua lam
 open class HandleViewModel(application: Application) : AndroidViewModel(application) {
     var context: Context = getApplication<Application>().applicationContext
     var mSongFavourite = MutableLiveData<SongFavourite>()
@@ -54,7 +53,7 @@ open class HandleViewModel(application: Application) : AndroidViewModel(applicat
         super.onCleared()
     }
 
-    private fun handleLayoutPlay(action: Int) {
+    fun handleLayoutPlay(action: Int) {
         when (action) {
             ACTION_START -> {
                 isVisibleLayout.value = true

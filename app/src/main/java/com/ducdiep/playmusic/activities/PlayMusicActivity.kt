@@ -15,6 +15,7 @@ import android.widget.SeekBar
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
@@ -34,6 +35,7 @@ import com.ducdiep.playmusic.models.songoffline.SongOffline
 import com.ducdiep.playmusic.models.songresponse.ResponseRecommend
 import com.ducdiep.playmusic.models.songresponse.Song
 import com.ducdiep.playmusic.services.MusicService
+import com.ducdiep.playmusic.viewmodel.PlayViewModel
 import kotlinx.android.synthetic.main.activity_home.*
 import kotlinx.android.synthetic.main.activity_play_music.*
 import kotlinx.android.synthetic.main.activity_play_music.btn_back
@@ -43,59 +45,63 @@ import retrofit2.Response
 
 class PlayMusicActivity : AppCompatActivity() {
     //set up bound service
-    private lateinit var mService: MusicService
-    private var mBound: Boolean = false
-    var currentPos: Int = 0
-    lateinit var listRecommend:List<Song>
-    lateinit var songService: SongService
-    lateinit var handler: Handler
-    lateinit var runnable: Runnable
-    lateinit var sqlHelper:SqlHelper
+//    private lateinit var mService: MusicService
+//    private var mBound: Boolean = false
+    lateinit var playViewModel: PlayViewModel
+
+    //    var currentPos: Int = 0
+    var duration: Long = 0
+
+    //    lateinit var listRecommend: List<Song>
+//    lateinit var songService: SongService
+//    lateinit var handler: Handler
+//    lateinit var runnable: Runnable
+    lateinit var sqlHelper: SqlHelper
     var isPrevious = false
 
-    private val connection = object : ServiceConnection {
+//    private val connection = object : ServiceConnection {
+//
+//        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+//            val binder = service as MusicService.MusicBinder
+//            mService = binder.getService()
+//            setProgress()
+//            mBound = true
+//        }
+//
+//        override fun onServiceDisconnected(arg0: ComponentName) {
+//            handler.removeCallbacks(runnable)
+//            mBound = false
+//        }
+//    }
 
-        override fun onServiceConnected(className: ComponentName, service: IBinder) {
-            val binder = service as MusicService.MusicBinder
-            mService = binder.getService()
-            setProgress()
-            mBound = true
-        }
+//    override fun onStart() {
+//        super.onStart()
+//        Intent(this, MusicService::class.java).also { intent ->
+//            bindService(intent, connection, Context.BIND_AUTO_CREATE)
+//        }
+//    }
 
-        override fun onServiceDisconnected(arg0: ComponentName) {
-            handler.removeCallbacks(runnable)
-            mBound = false
-        }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        Intent(this, MusicService::class.java).also { intent ->
-            bindService(intent, connection, Context.BIND_AUTO_CREATE)
-        }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        unbindService(connection)
-        mBound = false
-    }
+//    override fun onStop() {
+//        super.onStop()
+//        unbindService(connection)
+//        mBound = false
+//    }
 
     //variables
-    lateinit var mSongOffline: SongOffline
-    lateinit var mSongOnline: Song
-    lateinit var mSongFavourite: SongFavourite
-    lateinit var glide:RequestManager
+//    lateinit var mSongOffline: SongOffline
+//    lateinit var mSongOnline: Song
+//    lateinit var mSongFavourite: SongFavourite
+    lateinit var glide: RequestManager
     lateinit var anim: ObjectAnimator
-    var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            var bundle = intent.extras
-            if (bundle == null) return
-            var action = bundle.getInt(ACTION)
-            currentPos = bundle.getInt(CURRENT_POSITION)
-            handleLayoutPlay(action)
-        }
-    }
+//    var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+//        override fun onReceive(context: Context, intent: Intent) {
+//            var bundle = intent.extras
+//            if (bundle == null) return
+//            var action = bundle.getInt(ACTION)
+//            currentPos = bundle.getInt(CURRENT_POSITION)
+//            handleLayoutPlay(action)
+//        }
+//    }
 
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -103,29 +109,7 @@ class PlayMusicActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_play_music)
         supportActionBar?.hide()
-        AppPreferences.init(this)
-        songService = RetrofitInstance.getInstance()!!
-        glide = Glide.with(this)
-        sqlHelper = SqlHelper(this)
-        setStatusButton()
-        showDetailMusic()
-        setupRecommendSong()
-
-        LocalBroadcastManager.getInstance(this)
-            .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
-        if (AppPreferences.isShuffle) {
-            btn_handle_shuffle.setColorFilter(Color.rgb(0, 255, 255))
-        }
-        if (AppPreferences.isRepeatOne) {
-            btn_handle_repeat.setImageResource(R.drawable.ic_baseline_repeat_one_50)
-        }
-
-        anim = ObjectAnimator.ofFloat(img_music, "rotation", 0f, 360f)
-        anim.interpolator = LinearInterpolator()
-        anim.duration = 20000
-        anim.repeatCount = 1000
-        anim.repeatMode = ObjectAnimator.RESTART
-        anim.start()
+        init()
 
 
         //set click button
@@ -133,18 +117,14 @@ class PlayMusicActivity : AppCompatActivity() {
             finish()
         }
         btn_handle_play_or_pause.setOnClickListener {
-            if (AppPreferences.isPlaying) {
-                pauseMusic()
-            } else {
-                resumeMusic()
-            }
+            playViewModel.onClickPlayOrPause()
         }
 
         btn_handle_next.setOnClickListener {
-            mService.playNextMusic()
+            playViewModel.onClickNext()
         }
         btn_handle_previous.setOnClickListener {
-            mService.playPreviousMusic()
+            playViewModel.onClickPrevious()
         }
         btn_handle_shuffle.setOnClickListener {
             if (!AppPreferences.isShuffle) {
@@ -174,288 +154,504 @@ class PlayMusicActivity : AppCompatActivity() {
             downloadMusic()
         }
         img_favourite.setOnClickListener {
-            if (AppPreferences.isOnline){
-                if (sqlHelper.checkExists(mSongOnline.id)){
-                    sqlHelper.removeSong(mSongOnline.id)
-                    img_favourite.setImageResource(R.drawable.unlike)
-                    Toast.makeText(this, "Đã xóa bài hát khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show()
-                }else{
-                    sqlHelper.addSong(mSongOnline)
-                    Toast.makeText(this, "Đã thêm bài hát vào danh sách yêu thích", Toast.LENGTH_SHORT).show()
-                    img_favourite.setImageResource(R.drawable.like)
-                }
+            playViewModel.addOrRemoveFavourite()
+            if (playViewModel.isFavourite.value==true){
+                Toast.makeText(this, "Bạn đã thêm bài hát vào danh sách yêu thích", Toast.LENGTH_SHORT).show()
             }else{
-                if (sqlHelper.checkExistsOff(mSongOffline.resource)){
-                    sqlHelper.removeSongOff(mSongOffline.resource)
-                    img_favourite.setImageResource(R.drawable.unlike)
-                    Toast.makeText(this, "Đã xóa bài hát khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show()
-                }else{
-                    sqlHelper.addSongOff(mSongOffline)
-                    Toast.makeText(this, "Đã thêm bài hát off vào danh sách yêu thích", Toast.LENGTH_SHORT).show()
-                    img_favourite.setImageResource(R.drawable.like)
-                }
+                Toast.makeText(this, "Bạn đã xóa bài hát khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show()
+
+            }
+//            if (AppPreferences.isOnline) {
+//                if (sqlHelper.checkExists(mSongOnline.id)) {
+//                    sqlHelper.removeSong(mSongOnline.id)
+//                    img_favourite.setImageResource(R.drawable.unlike)
+//                    Toast.makeText(
+//                        this,
+//                        "Đã xóa bài hát khỏi danh sách yêu thích",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                } else {
+//                    sqlHelper.addSong(mSongOnline)
+//                    Toast.makeText(
+//                        this,
+//                        "Đã thêm bài hát vào danh sách yêu thích",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                    img_favourite.setImageResource(R.drawable.like)
+//                }
+//            } else {
+//                if (sqlHelper.checkExistsOff(mSongOffline.resource)) {
+//                    sqlHelper.removeSongOff(mSongOffline.resource)
+//                    img_favourite.setImageResource(R.drawable.unlike)
+//                    Toast.makeText(
+//                        this,
+//                        "Đã xóa bài hát khỏi danh sách yêu thích",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                } else {
+//                    sqlHelper.addSongOff(mSongOffline)
+//                    Toast.makeText(
+//                        this,
+//                        "Đã thêm bài hát off vào danh sách yêu thích",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                    img_favourite.setImageResource(R.drawable.like)
+//                }
+//            }
+        }
+    }
+
+    fun init() {
+        playViewModel = ViewModelProvider(this).get(PlayViewModel::class.java)
+        playViewModel.isPlaying.observe(this, {
+            if (it == true) {
+                btn_handle_play_or_pause.setImageResource(R.drawable.ic_baseline_pause_circle_outline_50)
+            } else {
+                btn_handle_play_or_pause.setImageResource(R.drawable.ic_baseline_play_circle_outline_50)
+            }
+        })
+        playViewModel.mSongOffline.observe(this,
+            { showMusicOffline(it) })
+        playViewModel.mSongOnline.observe(this,
+            { showMusicOnline(it) })
+        playViewModel.mSongFavourite.observe(this,
+            { showMusicFavourite(it) })
+        playViewModel.currentPosition.observe(this, {
+            setupProgress(it)
+        })
+        playViewModel.dataLoading.observe(this, {
+            if (it == true) {
+                progress_bar_play.visibility = View.VISIBLE
+            } else {
+                progress_bar_play.visibility = View.GONE
+            }
+        })
+
+        playViewModel.repoListRecommend.observe(this, {
+            setupRecommendSongAdapter(it)
+        })
+
+        playViewModel.genres.observe(this, {
+            tv_artist.text = "${tv_artist.text}   $it"
+            tv_artist.isSelected = true
+        })
+        playViewModel.isFavourite.observe(this){
+            if (it==true){
+                img_favourite.setImageResource(R.drawable.like)
+            }else{
+                img_favourite.setImageResource(R.drawable.unlike)
             }
         }
+
+        playViewModel.handleLayoutPlay(ACTION_START)
+        setupProgress(0)
+
+        AppPreferences.init(this)
+//        songService = RetrofitInstance.getInstance()!!
+        glide = Glide.with(this)
+        sqlHelper = SqlHelper(this)
+//        setStatusButton()
+//        showDetailMusic()
+//        setupRecommendSong()
+
+//        LocalBroadcastManager.getInstance(this)
+//            .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
+        if (AppPreferences.isShuffle) {
+            btn_handle_shuffle.setColorFilter(Color.rgb(0, 255, 255))
+        }
+        if (AppPreferences.isRepeatOne) {
+            btn_handle_repeat.setImageResource(R.drawable.ic_baseline_repeat_one_50)
+        }
+
+        anim = ObjectAnimator.ofFloat(img_music, "rotation", 0f, 360f)
+        anim.interpolator = LinearInterpolator()
+        anim.duration = 20000
+        anim.repeatCount = 1000
+        anim.repeatMode = ObjectAnimator.RESTART
+        anim.start()
     }
 
     private fun downloadMusic() {
-        if(AppPreferences.isOnline){
-            var url = "http://api.mp3.zing.vn/api/streaming/${mSongOnline.type}/${mSongOnline.id}/320"
-            var uri = Uri.parse(url)
-            var request = DownloadManager.Request(uri)
-            var title = "${mSongOnline.name}.mp3"
-            request.setTitle(title)
-            request.setDescription("Đang tải vui lòng đợi")
-            var cookie = CookieManager.getInstance().getCookie(url)
-            request.addRequestHeader("cookie",cookie)
-            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,title)
-            var downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-            downloadManager.enqueue(request)
+        if (AppPreferences.isOnline) {
+            playViewModel.downloadMusic()
             Toast.makeText(this, "Bắt đầu tải xuống", Toast.LENGTH_SHORT).show()
+//            var url =
+//                "http://api.mp3.zing.vn/api/streaming/${mSongOnline.type}/${mSongOnline.id}/320"
+//            var uri = Uri.parse(url)
+//            var request = DownloadManager.Request(uri)
+//            var title = "${mSongOnline.name}.mp3"
+//            request.setTitle(title)
+//            request.setDescription("Đang tải vui lòng đợi")
+//            var cookie = CookieManager.getInstance().getCookie(url)
+//            request.addRequestHeader("cookie", cookie)
+//            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+//            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, title)
+//            var downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+//            downloadManager.enqueue(request)
+//            Toast.makeText(this, "Bắt đầu tải xuống", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun setupRecommendSong() {
-        if (AppPreferences.isOnline){
-            progress_bar_play.visibility = View.VISIBLE
-            songService.getRecommend(mSongOnline.type,mSongOnline.id).enqueue(object :
-                Callback<ResponseRecommend> {
-                override fun onResponse(
-                    call: Call<ResponseRecommend>,
-                    response: Response<ResponseRecommend>
-                ) {
-                    if (response.isSuccessful) {
-                        var data = response.body()
-                        listRecommend = data!!.data.items
-                        if (!listSongOnline.contains(listRecommend[0])&&!isPrevious&&!AppPreferences.isPlayRequireList) {
-                            listSongOnline.add(listRecommend[0])
-                            isPrevious = false
-                        }
+//    private fun setupRecommendSong() {
+//        if (AppPreferences.isOnline) {
+//            progress_bar_play.visibility = View.VISIBLE
+//            songService.getRecommend(mSongOnline.type, mSongOnline.id).enqueue(object :
+//                Callback<ResponseRecommend> {
+//                override fun onResponse(
+//                    call: Call<ResponseRecommend>,
+//                    response: Response<ResponseRecommend>
+//                ) {
+//                    if (response.isSuccessful) {
+//                        var data = response.body()
+//                        listRecommend = data!!.data.items
+////                        if (!listSongOnline.contains(listRecommend[0]) && !isPrevious && !AppPreferences.isPlayRequireList) {
+////                            listSongOnline.add(listRecommend[0])
+////                            isPrevious = false
+////                        }
+//
+//                        setupRecommendSongAdapter()
+//                        progress_bar_play.visibility = View.GONE
+//                    }
+//                }
+//
+//                override fun onFailure(call: Call<ResponseRecommend>, t: Throwable) {
+//                    Toast.makeText(
+//                        this@PlayMusicActivity,
+//                        "Có lỗi khi tải nhạc",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                }
+//
+//            })
+//        }
+//    }
 
-                        setupRecommendSongAdapter()
-                        progress_bar_play.visibility = View.GONE
-                    }
-                }
+    private fun setupRecommendSongAdapter(listRecommend: List<Song>) {
 
-                override fun onFailure(call: Call<ResponseRecommend>, t: Throwable) {
-                    Toast.makeText(this@PlayMusicActivity, "Có lỗi khi tải nhạc", Toast.LENGTH_SHORT).show()
-                }
-
-            })
-        }
-    }
-
-    private fun setupRecommendSongAdapter() {
-
-        var songOnlineAdapter = SongOnlineAdapter(this,listRecommend)
+        var songOnlineAdapter = SongOnlineAdapter(this, listRecommend)
         songOnlineAdapter.setOnClickItem {
             listSongOnline.removeLastOrNull()
             listSongOnline.add(it)
-            AppPreferences.indexPlaying = listSongOnline.size-1
-            mService.handleMusic(ACTION_START)
+            AppPreferences.indexPlaying = listSongOnline.size - 1
+            playViewModel.startMusic()
         }
         rcv_recommend_songs.adapter = songOnlineAdapter
     }
 
     private fun resumeMusic() {
-        mService.mediaPlayer?.start()
+        playViewModel.resumeMusic()
         AppPreferences.isPlaying = true
-        mService.sendNotificationMedia(AppPreferences.indexPlaying)
-        AppPreferences.isPlaying = true
-        setStatusButton()
+//        setStatusButton()
         anim.resume()
     }
 
     private fun pauseMusic() {
 //        seekbar_handle.progress = (currentPos/1000)
 //        mService.mediaPlayer?.seekTo(currentPos)
-        mService.mediaPlayer?.pause()
+        playViewModel.pauseMusic()
         AppPreferences.isPlaying = false
-        mService.sendNotificationMedia(AppPreferences.indexPlaying)
-        AppPreferences.isPlaying = false
-        setStatusButton()
+//        setStatusButton()
         anim.pause()
     }
 
-    private fun handleLayoutPlay(action: Int) {
-        when (action) {
-            ACTION_START -> {
-                showDetailMusic()
-                setStatusButton()
-                if (mBound) {
-                    setProgress()
-                }
-                setupRecommendSong()
-            }
-            ACTION_PAUSE -> pauseMusic()
-            ACTION_RESUME -> resumeMusic()
-            ACTION_NEXT -> {
+//    private fun handleLayoutPlay(action: Int) {
+//        when (action) {
+//            ACTION_START -> {
 //                showDetailMusic()
-                seekbar_handle.progress = 0
+//                setStatusButton()
+//                if (mBound) {
+//                    setProgress()
+//                }
 //                setupRecommendSong()
-            }
-            ACTION_PREVIOUS -> {
-                isPrevious = true
-//                showDetailMusic()
-                seekbar_handle.progress = 0
-//                setupRecommendSong()
-            }
-            ACTION_CLEAR -> {
-                handler.removeCallbacks(runnable)
-                reloadData()
-                finish()
-            }
+//            }
+//            ACTION_PAUSE -> pauseMusic()
+//            ACTION_RESUME -> resumeMusic()
+//            ACTION_NEXT -> {
+////                showDetailMusic()
+//                seekbar_handle.progress = 0
+////                setupRecommendSong()
+//            }
+//            ACTION_PREVIOUS -> {
+//                isPrevious = true
+////                showDetailMusic()
+//                seekbar_handle.progress = 0
+////                setupRecommendSong()
+//            }
+//            ACTION_CLEAR -> {
+//                handler.removeCallbacks(runnable)
+//                reloadData()
+//                finish()
+//            }
+//
+//        }
+//    }
 
-        }
+//    private fun setStatusButton() {
+//        if (AppPreferences.isPlaying) {
+//            btn_handle_play_or_pause.setImageResource(R.drawable.ic_baseline_pause_circle_outline_50)
+//        } else {
+//            btn_handle_play_or_pause.setImageResource(R.drawable.ic_baseline_play_circle_outline_50)
+//        }
+//    }
+
+    fun showMusicOnline(s: Song) {
+        duration = (s.duration * 1000).toLong()
+        var linkImage = s.thumbnail.replaceFirst("w94_r1x1_jpeg/", "")
+        glide.load(linkImage).into(img_music)
+        tv_song_name.text = s.name
+        tv_song_name.isSelected = true
+        tv_artist.text = "${s.artists_names}"
+        tv_artist.isSelected = true
+//        songService.getSongInfor(s.type, s.id).enqueue(object : Callback<ResponseInfor> {
+//            override fun onResponse(
+//                call: Call<ResponseInfor>,
+//                response: Response<ResponseInfor>
+//            ) {
+//                if (response.isSuccessful) {
+//                    var data = response.body()
+//                    if (data!!.data.genres.size > 1) {
+//                        tv_artist.text = "${s.artists_names}   ${data.data.genres[1].name}"
+//                        tv_artist.isSelected = true
+//                    }
+//                }
+//            }
+//
+//            override fun onFailure(call: Call<ResponseInfor>, t: Throwable) {
+//
+//            }
+//
+//        })
+        setupProgress(0)
+        img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+//        if (sqlHelper.checkExists(s.id)) {
+//            img_favourite.setImageResource(R.drawable.like)
+//        } else {
+//            img_favourite.setImageResource(R.drawable.unlike)
+//        }
     }
 
-    private fun setStatusButton() {
-        if (AppPreferences.isPlaying) {
-            btn_handle_play_or_pause.setImageResource(R.drawable.ic_baseline_pause_circle_outline_50)
+    fun showMusicOffline(s: SongOffline) {
+        duration = s.duration.toLong()
+        img_music.setImageBitmap(s.imageBitmap)
+        tv_song_name.text = s.name
+        tv_song_name.isSelected = true
+        if (s.genres != "null") {
+            tv_artist.text = "${s.artist}   ${s.genres}"
         } else {
-            btn_handle_play_or_pause.setImageResource(R.drawable.ic_baseline_play_circle_outline_50)
+            tv_artist.text = "${s.artist}"
         }
+
+        setupProgress(0)
+//        if (sqlHelper.checkExistsOff(s.resource)) {
+//            img_favourite.setImageResource(R.drawable.like)
+//        } else {
+//            img_favourite.setImageResource(R.drawable.unlike)
+//        }
+        tv_artist.isSelected = true
+        img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
     }
 
-    fun showDetailMusic() {
-        if (AppPreferences.isPlayFavouriteList){
-            mSongFavourite = listSongFavourite[AppPreferences.indexPlaying]
-            if (mSongFavourite.url==""){//online
-                var linkImage = mSongFavourite.thumbnail.replaceFirst("w94_r1x1_jpeg/","")
-                glide.load(linkImage).into(img_music)
-                tv_song_name.text = mSongFavourite.name
-                tv_song_name.isSelected = true
-                songService.getSongInfor(mSongFavourite.type,mSongFavourite.id).enqueue(object :Callback<ResponseInfor>{
-                    override fun onResponse(
-                        call: Call<ResponseInfor>,
-                        response: Response<ResponseInfor>
-                    ) {
-                        if (response.isSuccessful){
-                            var data = response.body()
-                            if (data!!.data.genres.size>1){
-                                tv_artist.text ="${mSongFavourite.artists_names}   ${data.data.genres[1].name}"
-                                tv_artist.isSelected = true
-                            }
-                        }
-                    }
+    fun showMusicFavourite(s: SongFavourite) {
 
-                    override fun onFailure(call: Call<ResponseInfor>, t: Throwable) {
+        if (s.url == "") {//online
+            duration = (s.duration * 1000).toLong()
+            var linkImage = s.thumbnail.replaceFirst("w94_r1x1_jpeg/", "")
+            glide.load(linkImage).into(img_music)
+            tv_song_name.text = s.name
+            tv_song_name.isSelected = true
+            tv_artist.text = "${s.artists_names}"
+            tv_artist.isSelected = true
+//            songService.getSongInfor(s.type, s.id).enqueue(object : Callback<ResponseInfor> {
+//                override fun onResponse(
+//                    call: Call<ResponseInfor>,
+//                    response: Response<ResponseInfor>
+//                ) {
+//                    if (response.isSuccessful) {
+//                        var data = response.body()
+//                        if (data!!.data.genres.size > 1) {
+//                            tv_artist.text = "${s.artists_names}   ${data.data.genres[1].name}"
+//                            tv_artist.isSelected = true
+//                        }
+//                    }
+//                }
+//
+//                override fun onFailure(call: Call<ResponseInfor>, t: Throwable) {
+//
+//                }
+//
+//            })
 
-                    }
+            img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+//            if (sqlHelper.checkExists(s.id)) {
+//                img_favourite.setImageResource(R.drawable.like)
+//            } else {
+//                img_favourite.setImageResource(R.drawable.unlike)
+//            }
+        } else {//offline
+            duration = s.duration.toLong()
+            img_music.setImageBitmap(
+                BitmapFactory.decodeResource(
+                    resources,
+                    R.drawable.musical_default
+                )
+            )
+            tv_song_name.text = s.name
+            tv_song_name.isSelected = true
+            tv_artist.text = "${s.artists_names}"
 
-                })
-
-                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
-                if (sqlHelper.checkExists(mSongFavourite.id)){
-                    img_favourite.setImageResource(R.drawable.like)
-                }else{
-                    img_favourite.setImageResource(R.drawable.unlike)
-                }
-            }else{//offline
-                img_music.setImageBitmap(BitmapFactory.decodeResource(resources, R.drawable.musical_default))
-                tv_song_name.text = mSongFavourite.name
-                tv_song_name.isSelected = true
-                tv_artist.text = "${mSongFavourite.artists_names}"
-
-                if (sqlHelper.checkExistsOff(mSongFavourite.url)){
-                    img_favourite.setImageResource(R.drawable.like)
-                }else{
-                    img_favourite.setImageResource(R.drawable.unlike)
-
-                }
-                tv_artist.isSelected = true
-                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
-            }
-        }else{
-            if (AppPreferences.isOnline){
-                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-                var linkImage = mSongOnline.thumbnail.replaceFirst("w94_r1x1_jpeg/","")
-                glide.load(linkImage).into(img_music)
-                tv_song_name.text = mSongOnline.name
-                tv_song_name.isSelected = true
-                songService.getSongInfor(mSongOnline.type,mSongOnline.id).enqueue(object :Callback<ResponseInfor>{
-                    override fun onResponse(
-                        call: Call<ResponseInfor>,
-                        response: Response<ResponseInfor>
-                    ) {
-                        if (response.isSuccessful){
-                            var data = response.body()
-                            if (data!!.data.genres.size>1){
-                                tv_artist.text ="${mSongOnline.artists_names}   ${data.data.genres[1].name}"
-                                tv_artist.isSelected = true
-                            }
-                        }
-                    }
-
-                    override fun onFailure(call: Call<ResponseInfor>, t: Throwable) {
-
-                    }
-
-                })
-
-                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
-                if (sqlHelper.checkExists(mSongOnline.id)){
-                    img_favourite.setImageResource(R.drawable.like)
-                }else{
-                    img_favourite.setImageResource(R.drawable.unlike)
-                }
-
-            }else{
-                mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-                img_music.setImageBitmap(mSongOffline.imageBitmap)
-                tv_song_name.text = mSongOffline.name
-                tv_song_name.isSelected = true
-                if (mSongOffline.genres!="null"){
-                    tv_artist.text = "${mSongOffline.artist}   ${mSongOffline.genres}"
-                }else{
-                    tv_artist.text = "${mSongOffline.artist}"
-                }
-
-                if (sqlHelper.checkExistsOff(mSongOffline.resource)){
-                    img_favourite.setImageResource(R.drawable.like)
-                }else{
-                    img_favourite.setImageResource(R.drawable.unlike)
-
-                }
-                tv_artist.isSelected = true
-                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
-            }
+//            if (sqlHelper.checkExistsOff(s.url)) {
+//                img_favourite.setImageResource(R.drawable.like)
+//            } else {
+//                img_favourite.setImageResource(R.drawable.unlike)
+//            }
+            tv_artist.isSelected = true
+            img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
         }
-
-
+        setupProgress(0)
     }
 
+//    fun showDetailMusic() {
+//        if (AppPreferences.isPlayFavouriteList){
+//            mSongFavourite = listSongFavourite[AppPreferences.indexPlaying]
+//            if (mSongFavourite.url==""){//online
+//                var linkImage = mSongFavourite.thumbnail.replaceFirst("w94_r1x1_jpeg/","")
+//                glide.load(linkImage).into(img_music)
+//                tv_song_name.text = mSongFavourite.name
+//                tv_song_name.isSelected = true
+//                songService.getSongInfor(mSongFavourite.type,mSongFavourite.id).enqueue(object :Callback<ResponseInfor>{
+//                    override fun onResponse(
+//                        call: Call<ResponseInfor>,
+//                        response: Response<ResponseInfor>
+//                    ) {
+//                        if (response.isSuccessful){
+//                            var data = response.body()
+//                            if (data!!.data.genres.size>1){
+//                                tv_artist.text ="${mSongFavourite.artists_names}   ${data.data.genres[1].name}"
+//                                tv_artist.isSelected = true
+//                            }
+//                        }
+//                    }
+//
+//                    override fun onFailure(call: Call<ResponseInfor>, t: Throwable) {
+//
+//                    }
+//
+//                })
+//
+//                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+//                if (sqlHelper.checkExists(mSongFavourite.id)){
+//                    img_favourite.setImageResource(R.drawable.like)
+//                }else{
+//                    img_favourite.setImageResource(R.drawable.unlike)
+//                }
+//            }else{//offline
+//                img_music.setImageBitmap(BitmapFactory.decodeResource(resources, R.drawable.musical_default))
+//                tv_song_name.text = mSongFavourite.name
+//                tv_song_name.isSelected = true
+//                tv_artist.text = "${mSongFavourite.artists_names}"
+//
+//                if (sqlHelper.checkExistsOff(mSongFavourite.url)){
+//                    img_favourite.setImageResource(R.drawable.like)
+//                }else{
+//                    img_favourite.setImageResource(R.drawable.unlike)
+//
+//                }
+//                tv_artist.isSelected = true
+//                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+//            }
+//        }else{
+//            if (AppPreferences.isOnline){
+//                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+//                var linkImage = mSongOnline.thumbnail.replaceFirst("w94_r1x1_jpeg/","")
+//                glide.load(linkImage).into(img_music)
+//                tv_song_name.text = mSongOnline.name
+//                tv_song_name.isSelected = true
+//                songService.getSongInfor(mSongOnline.type,mSongOnline.id).enqueue(object :Callback<ResponseInfor>{
+//                    override fun onResponse(
+//                        call: Call<ResponseInfor>,
+//                        response: Response<ResponseInfor>
+//                    ) {
+//                        if (response.isSuccessful){
+//                            var data = response.body()
+//                            if (data!!.data.genres.size>1){
+//                                tv_artist.text ="${mSongOnline.artists_names}   ${data.data.genres[1].name}"
+//                                tv_artist.isSelected = true
+//                            }
+//                        }
+//                    }
+//
+//                    override fun onFailure(call: Call<ResponseInfor>, t: Throwable) {
+//
+//                    }
+//
+//                })
+//
+//                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+//                if (sqlHelper.checkExists(mSongOnline.id)){
+//                    img_favourite.setImageResource(R.drawable.like)
+//                }else{
+//                    img_favourite.setImageResource(R.drawable.unlike)
+//                }
+//
+//            }else{
+//                mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+//                img_music.setImageBitmap(mSongOffline.imageBitmap)
+//                tv_song_name.text = mSongOffline.name
+//                tv_song_name.isSelected = true
+//                if (mSongOffline.genres!="null"){
+//                    tv_artist.text = "${mSongOffline.artist}   ${mSongOffline.genres}"
+//                }else{
+//                    tv_artist.text = "${mSongOffline.artist}"
+//                }
+//
+//                if (sqlHelper.checkExistsOff(mSongOffline.resource)){
+//                    img_favourite.setImageResource(R.drawable.like)
+//                }else{
+//                    img_favourite.setImageResource(R.drawable.unlike)
+//
+//                }
+//                tv_artist.isSelected = true
+//                img_music.startAnimation(AnimationUtils.loadAnimation(this, R.anim.rotate_image))
+//            }
+//        }
+//
+//
+//    }
 
-    //set up progressbar
-    fun setProgress() {
-        var duration:Long
-        if(AppPreferences.isOnline){
-            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-            duration = (mSongOnline.duration*1000).toLong()
-        }else{
-            mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-            duration = mSongOffline.duration.toLong()
-        }
-        tv_progress.text = timerConversion(currentPos.toLong())
+
+    //    set up progressbar
+    fun setupProgress(t: Int) {
+//        var duration: Long
+//        if (AppPreferences.isOnline) {
+//            mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+//            duration = (mSongOnline.duration * 1000).toLong()
+//        } else {
+//            mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+//            duration = mSongOffline.duration.toLong()
+//        }
+//        tv_progress.text = timerConversion(currentPos.toLong())
+//        tv_duration.text = timerConversion(duration)
+//        seekbar_handle.max = duration.toInt()
+//        handler = Handler(mainLooper)
+//
+//        runnable = object : Runnable {
+//            override fun run() {
+//                try {
+//                    tv_progress.text =
+//                        timerConversion(mService.mediaPlayer?.currentPosition!!.toLong())
+//                    seekbar_handle.progress = mService.mediaPlayer?.currentPosition!!
+//                    handler.postDelayed(this, 1000)
+//
+//                } catch (ex: Exception) {
+//
+//                }
+//            }
+//        }
+//        handler.postDelayed(runnable, 1000)
         tv_duration.text = timerConversion(duration)
+        tv_progress.text = timerConversion(t.toLong())
+        seekbar_handle.progress = t
         seekbar_handle.max = duration.toInt()
-        handler = Handler(mainLooper)
-
-        runnable = object : Runnable {
-            override fun run() {
-                try {
-                    tv_progress.text =
-                        timerConversion(mService.mediaPlayer?.currentPosition!!.toLong())
-                    seekbar_handle.progress = mService.mediaPlayer?.currentPosition!!
-                    handler.postDelayed(this, 1000)
-
-                } catch (ex: Exception) {
-
-                }
-            }
-        }
-        handler.postDelayed(runnable, 1000)
         seekbar_handle.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
 
@@ -466,7 +662,8 @@ class PlayMusicActivity : AppCompatActivity() {
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar) {
-                mService.mediaPlayer!!.seekTo(seekBar.progress)
+//                mService.mediaPlayer!!.seekTo(seekBar.progress)
+                playViewModel.onSeekbarChange(seekBar.progress)
             }
 
         })

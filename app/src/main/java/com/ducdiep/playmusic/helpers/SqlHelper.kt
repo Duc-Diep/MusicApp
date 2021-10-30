@@ -65,6 +65,20 @@ class SqlHelper(var context: Context) : SQLiteOpenHelper(context, DB_NAME, null,
         contentValue.put("url", song.resource)
         sqlIteDatabase.insert(DB_TABLE_ON, null, contentValue)
     }
+    fun addSongFavourite(song: SongFavourite) {
+        sqlIteDatabase = writableDatabase
+        contentValue = ContentValues()
+        contentValue.put("id", AppPreferences.indexSQL)
+        AppPreferences.indexSQL = AppPreferences.indexSQL + 1
+        contentValue.put("code", song.code)
+        contentValue.put("artist", song.artists_names)
+        contentValue.put("duration", song.duration)
+        contentValue.put("name", song.name)
+        contentValue.put("thumb", song.thumbnail)
+        contentValue.put("type", song.type)
+        contentValue.put("url", song.url)
+        sqlIteDatabase.insert(DB_TABLE_ON, null, contentValue)
+    }
 
     fun removeSong(id: String) {
         sqlIteDatabase = writableDatabase

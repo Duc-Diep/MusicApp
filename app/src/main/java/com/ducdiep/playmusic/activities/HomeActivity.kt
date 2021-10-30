@@ -18,6 +18,7 @@ import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
@@ -41,6 +42,8 @@ import com.ducdiep.playmusic.models.songoffline.SongOffline
 import com.ducdiep.playmusic.models.songresponse.ResponseTopSong
 import com.ducdiep.playmusic.models.songresponse.Song
 import com.ducdiep.playmusic.services.MusicService
+import com.ducdiep.playmusic.viewmodel.HandleViewModel
+import com.ducdiep.playmusic.viewmodel.HomeViewModel
 import kotlinx.android.synthetic.main.activity_favourite.*
 import kotlinx.android.synthetic.main.activity_home.*
 import kotlinx.android.synthetic.main.activity_home.btn_close
@@ -50,40 +53,48 @@ import kotlinx.android.synthetic.main.activity_home.btn_previous
 import kotlinx.android.synthetic.main.activity_home.edt_search
 import kotlinx.android.synthetic.main.activity_home.img_song
 import kotlinx.android.synthetic.main.activity_home.layout_playing
+import kotlinx.android.synthetic.main.activity_home.layout_search
 import kotlinx.android.synthetic.main.activity_home.layout_title
 import kotlinx.android.synthetic.main.activity_home.tv_name
 import kotlinx.android.synthetic.main.activity_home.tv_single
+import kotlinx.android.synthetic.main.activity_list_offline.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
 class HomeActivity : AppCompatActivity() {
-    var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            var bundle = intent.extras
-            if (bundle == null) return
-            var action = bundle.getInt(ACTION)
-            handleLayoutPlay(action)
-        }
-    }
-    var networkBroadcast: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (ConnectivityManager.CONNECTIVITY_ACTION == intent?.action) {
-                if (isNetworkAvailable(context!!)) {
-                    loadData()
-                } else {
-                    loadData()
-                }
-            }
-        }
 
-    }
-    lateinit var mSongOffline: SongOffline
-    lateinit var mSongOnline: Song
-    lateinit var mSongFavourite: SongFavourite
+    lateinit var handleViewModel: HandleViewModel
+    lateinit var homeViewModel: HomeViewModel
+
+    //    var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+//        override fun onReceive(context: Context, intent: Intent) {
+//            var bundle = intent.extras
+//            if (bundle == null) return
+//            var action = bundle.getInt(ACTION)
+//            handleLayoutPlay(action)
+//        }
+//    }
+//    var networkBroadcast: BroadcastReceiver = object : BroadcastReceiver() {
+//        override fun onReceive(context: Context?, intent: Intent?) {
+//            if (ConnectivityManager.CONNECTIVITY_ACTION == intent?.action) {
+//                if (isNetworkAvailable(context!!)) {
+//                    loadData()
+//                } else {
+//                    loadData()
+//                }
+//            }
+//        }
+//
+//    }
+
+    //    lateinit var mSongOffline: SongOffline
+//    lateinit var mSongOnline: Song
+//    lateinit var mSongFavourite: SongFavourite
     lateinit var glide: RequestManager
-    lateinit var songService: SongService
-    lateinit var songServiceSearch: SongService
+
+    //    lateinit var songService: SongService
+//    lateinit var songServiceSearch: SongService
     lateinit var listTopSong: List<Song>
     lateinit var listSearch: List<SongSearch>
     private val searcByvoice =
@@ -104,37 +115,8 @@ class HomeActivity : AppCompatActivity() {
 
     //search
     var runSearch = Runnable {
-
         var key = edt_search.text.toString()
-        songServiceSearch.getSearch("artist,song,key,code", 500, key)
-            .enqueue(object : Callback<ResponseSearch> {
-                override fun onResponse(
-                    call: Call<ResponseSearch>,
-                    response: Response<ResponseSearch>
-                ) {
-                    if (response.isSuccessful) {
-                        var data = response.body()
-                        if (data!!.data.size > 0) {
-                            listSearch = data?.data!![0].song
-                            setupDataSearch(listSearch)
-                        }
-                        progressbar_search.visibility = View.GONE
-                        val imm =
-                            getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-                        imm?.hideSoftInputFromWindow(edt_search.windowToken, 0)
-                    }
-                }
-
-                override fun onFailure(call: Call<ResponseSearch>, t: Throwable) {
-                    Toast.makeText(
-                        this@HomeActivity,
-                        "Không tìm thấy bài hát này",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    progressbar_search.visibility = View.GONE
-                }
-
-            })
+        homeViewModel.fetchListSearch(key)
     }
 
 
@@ -194,25 +176,20 @@ class HomeActivity : AppCompatActivity() {
         }
 
         if (AppPreferences.indexPlaying != -1) {
-            handleLayoutPlay(ACTION_START)
+            handleViewModel.handleLayoutPlay(ACTION_START)
         }
 
         btn_play_or_pause.setOnClickListener {
-            if (AppPreferences.isPlaying) {
-                sendActionToService(ACTION_PAUSE)
-            } else {
-                sendActionToService(ACTION_RESUME)
-            }
+            handleViewModel.onClickPlayOrPause()
         }
         btn_close.setOnClickListener {
-            sendActionToService(ACTION_CLEAR)
+            handleViewModel.onClickClose()
         }
         btn_next.setOnClickListener {
-            sendActionToService(ACTION_NEXT)
-
+            handleViewModel.onClickNext()
         }
         btn_previous.setOnClickListener {
-            sendActionToService(ACTION_PREVIOUS)
+            handleViewModel.onClickPrevious()
 
         }
         layout_title.setOnClickListener {
@@ -222,102 +199,188 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    fun loadData() {
-        if (!isNetworkAvailable(this)) {
-            layout_search.visibility = View.GONE
-            layout_slide.visibility = View.GONE
-            layout_title_top_song.visibility = View.GONE
-            rcv_top_songs.visibility = View.GONE
-        } else {
+    fun loadData(check: Boolean?) {
+        if (check == true) {
             layout_search.visibility = View.VISIBLE
             layout_slide.visibility = View.VISIBLE
             layout_title_top_song.visibility = View.VISIBLE
             rcv_top_songs.visibility = View.VISIBLE
-            songService = RetrofitInstance.getInstance()!!
-            songServiceSearch = RetrofitInstance.getInstanceSearch()!!
+//            songService = RetrofitInstance.getInstance()!!
+//            songServiceSearch = RetrofitInstance.getInstanceSearch()!!
             getTopSong()
+        } else {
+            layout_search.visibility = View.GONE
+            layout_slide.visibility = View.GONE
+            layout_title_top_song.visibility = View.GONE
+            rcv_top_songs.visibility = View.GONE
         }
     }
 
     fun init() {
-        loadData()
+        homeViewModel = ViewModelProvider(this).get(HomeViewModel::class.java)
+        homeViewModel.isNetworkAvailble.observe(this, { t ->
+            loadData(t)
+        })
+
+        homeViewModel.repoListSearch.observe(this, { t ->
+            setupDataSearch(t)
+            val imm =
+                getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(edt_search.windowToken, 0)
+        })
+        homeViewModel.repoListTopSong.observe(this, { t ->
+            listTopSong = t
+            setUpSlide()
+            setupTopSongAdapter()
+        })
+
+        homeViewModel.dataLoading.observe(this,{t->
+            if (t==true){
+                progressbar_search.visibility = View.VISIBLE
+            }else{
+                progressbar_search.visibility = View.GONE
+            }
+        })
+
+
+        handleViewModel = ViewModelProvider(this).get(HandleViewModel::class.java)
+        handleViewModel.isPlaying.observe(this, { t ->
+            if (t == true) {
+                btn_play_or_pause.setImageResource(R.drawable.pause)
+            } else {
+                btn_play_or_pause.setImageResource(R.drawable.play)
+            }
+        })
+        handleViewModel.isVisibleLayout.observe(this, { t ->
+            if (t == true) {
+                layout_playing.visibility = View.VISIBLE
+            } else {
+                layout_playing.visibility = View.GONE
+            }
+        })
+        handleViewModel.mSongOffline.observe(this,
+            { t -> showMusicOffline(t) })
+        handleViewModel.mSongOnline.observe(this,
+            { t -> showMusicOnline(t) })
+        handleViewModel.mSongFavourite.observe(this,
+            { t -> showMusicFavourite(t) })
         AppPreferences.init(this)
         glide = Glide.with(this)
-        LocalBroadcastManager.getInstance(this)
-            .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
 
-
+//        LocalBroadcastManager.getInstance(this)
+//            .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
     }
 
-    private fun handleLayoutPlay(action: Int) {
-        when (action) {
-            ACTION_START -> {
-                layout_playing.visibility = View.VISIBLE
-                showDetailMusic()
-                setStatusButton()
-            }
-            ACTION_PAUSE -> setStatusButton()
-            ACTION_RESUME -> setStatusButton()
-            ACTION_CLEAR -> {
-                layout_playing.visibility = View.GONE
-                reloadData()
-            }
-            ACTION_NEXT -> showDetailMusic()
-            ACTION_PREVIOUS -> showDetailMusic()
-        }
+    private fun showMusicOffline(t: SongOffline?) {
+        img_song.setImageBitmap(t?.imageBitmap)
+        tv_name.text = t?.name
+        tv_name.isSelected = true
+        tv_single.text = t?.artist
+        tv_single.isSelected = true
+        tv_single.isFocusable = true
     }
 
-    fun setStatusButton() {
-        if (AppPreferences.isPlaying) {
-            btn_play_or_pause.setImageResource(R.drawable.pause)
+    private fun showMusicOnline(t: Song?) {
+        var linkImage = t?.thumbnail
+        glide.load(linkImage).into(img_song)
+        tv_name.text = t?.name
+        tv_name.isSelected = true
+        tv_single.text = t?.artists_names
+        tv_single.isSelected = true
+    }
+
+    private fun showMusicFavourite(t: SongFavourite?) {
+        if (t?.url == "") {
+            var linkImage = t.thumbnail
+            glide.load(linkImage).into(img_song)
+            tv_name.text = t.name
+            tv_name.isSelected = true
+            tv_single.text = t.artists_names
+            tv_single.isSelected = true
         } else {
-            btn_play_or_pause.setImageResource(R.drawable.play)
-        }
-    }
-
-    fun showDetailMusic() {
-        if (AppPreferences.isPlayFavouriteList) {
-            mSongFavourite = listSongFavourite[AppPreferences.indexPlaying]
-            if (mSongFavourite.url == "") {
-                var linkImage = mSongFavourite.thumbnail
-                glide.load(linkImage).into(img_song)
-                tv_name.text = mSongFavourite.name
-                tv_name.isSelected = true
-                tv_single.text = mSongFavourite.artists_names
-                tv_single.isSelected = true
-            } else {
-                img_song.setImageBitmap(
-                    BitmapFactory.decodeResource(
-                        resources,
-                        R.drawable.musical_default
-                    )
+            img_song.setImageBitmap(
+                BitmapFactory.decodeResource(
+                    resources,
+                    R.drawable.musical_default
                 )
-                tv_name.text = mSongFavourite.name
-                tv_name.isSelected = true
-                tv_single.text = mSongFavourite.artists_names
-                tv_single.isSelected = true
-                tv_single.isFocusable = true
-            }
-        } else {
-            if (AppPreferences.isOnline) {
-                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-                var linkImage = mSongOnline.thumbnail
-                glide.load(linkImage).into(img_song)
-                tv_name.text = mSongOnline.name
-                tv_name.isSelected = true
-                tv_single.text = mSongOnline.artists_names
-                tv_single.isSelected = true
-            } else {
-                mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-                img_song.setImageBitmap(mSongOffline.imageBitmap)
-                tv_name.text = mSongOffline.name
-                tv_name.isSelected = true
-                tv_single.text = mSongOffline.artist
-                tv_single.isSelected = true
-                tv_single.isFocusable = true
-            }
+            )
+            tv_name.text = t?.name
+            tv_name.isSelected = true
+            tv_single.text = t?.artists_names
+            tv_single.isSelected = true
+            tv_single.isFocusable = true
         }
     }
+
+//    private fun handleLayoutPlay(action: Int) {
+//        when (action) {
+//            ACTION_START -> {
+//                layout_playing.visibility = View.VISIBLE
+//                showDetailMusic()
+//                setStatusButton()
+//            }
+//            ACTION_PAUSE -> setStatusButton()
+//            ACTION_RESUME -> setStatusButton()
+//            ACTION_CLEAR -> {
+//                layout_playing.visibility = View.GONE
+//                reloadData()
+//            }
+//            ACTION_NEXT -> showDetailMusic()
+//            ACTION_PREVIOUS -> showDetailMusic()
+//        }
+//    }
+
+//    fun setStatusButton() {
+//        if (AppPreferences.isPlaying) {
+//            btn_play_or_pause.setImageResource(R.drawable.pause)
+//        } else {
+//            btn_play_or_pause.setImageResource(R.drawable.play)
+//        }
+//    }
+
+//    fun showDetailMusic() {
+//        if (AppPreferences.isPlayFavouriteList) {
+//            mSongFavourite = listSongFavourite[AppPreferences.indexPlaying]
+//            if (mSongFavourite.url == "") {
+//                var linkImage = mSongFavourite.thumbnail
+//                glide.load(linkImage).into(img_song)
+//                tv_name.text = mSongFavourite.name
+//                tv_name.isSelected = true
+//                tv_single.text = mSongFavourite.artists_names
+//                tv_single.isSelected = true
+//            } else {
+//                img_song.setImageBitmap(
+//                    BitmapFactory.decodeResource(
+//                        resources,
+//                        R.drawable.musical_default
+//                    )
+//                )
+//                tv_name.text = mSongFavourite.name
+//                tv_name.isSelected = true
+//                tv_single.text = mSongFavourite.artists_names
+//                tv_single.isSelected = true
+//                tv_single.isFocusable = true
+//            }
+//        } else {
+//            if (AppPreferences.isOnline) {
+//                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
+//                var linkImage = mSongOnline.thumbnail
+//                glide.load(linkImage).into(img_song)
+//                tv_name.text = mSongOnline.name
+//                tv_name.isSelected = true
+//                tv_single.text = mSongOnline.artists_names
+//                tv_single.isSelected = true
+//            } else {
+//                mSongOffline = listSongOffline[AppPreferences.indexPlaying]
+//                img_song.setImageBitmap(mSongOffline.imageBitmap)
+//                tv_name.text = mSongOffline.name
+//                tv_name.isSelected = true
+//                tv_single.text = mSongOffline.artist
+//                tv_single.isSelected = true
+//                tv_single.isFocusable = true
+//            }
+//        }
+//    }
 
     //create popup
     private fun showPopup(view: View) {
@@ -390,25 +453,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun getTopSong() {
-        songService.getTopSong().enqueue(object : Callback<ResponseTopSong> {
-            override fun onResponse(
-                call: Call<ResponseTopSong>,
-                response: Response<ResponseTopSong>
-            ) {
-                if (response.isSuccessful) {
-                    var dataRespone = response.body()
-                    listTopSong = dataRespone?.data?.song!!
-                    setUpSlide()
-                    setupTopSongAdapter()
-                }
-            }
-
-            override fun onFailure(call: Call<ResponseTopSong>, t: Throwable) {
-                Toast.makeText(this@HomeActivity, "Lỗi khi tải bài hát", Toast.LENGTH_SHORT).show()
-            }
-
-        })
-
+        homeViewModel.fetchListTopSong()
     }
 
     //slide
@@ -440,7 +485,7 @@ class HomeActivity : AppCompatActivity() {
             AppPreferences.isPlayFavouriteList = false
             var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)
-            sendActionToService(ACTION_START)
+            handleViewModel.startMusic()
             Toast.makeText(this, "${it.name}", Toast.LENGTH_SHORT).show()
         }
         rcv_top_songs.adapter = topSongAdapter
@@ -468,17 +513,17 @@ class HomeActivity : AppCompatActivity() {
             AppPreferences.isPlayFavouriteList = false
             var intent = Intent(this, PlayMusicActivity::class.java)
             startActivity(intent)
-            sendActionToService(ACTION_START)
+            handleViewModel.startMusic()
             Toast.makeText(this, "${it.name}", Toast.LENGTH_SHORT).show()
         }
         rcv_search.adapter = songAdapter
     }
 
-    fun sendActionToService(action: Int) {
-        var intent = Intent(this, MusicService::class.java)
-        intent.putExtra(ACTION_TO_SERVICE, action)
-        startService(intent)
-    }
+//    fun sendActionToService(action: Int) {
+//        var intent = Intent(this, MusicService::class.java)
+//        intent.putExtra(ACTION_TO_SERVICE, action)
+//        startService(intent)
+//    }
 
 
     override fun onPause() {
@@ -490,8 +535,7 @@ class HomeActivity : AppCompatActivity() {
         super.onResume()
         handler.postDelayed(runSlide, 2000)
         if (AppPreferences.indexPlaying != -1) {
-            showDetailMusic()
-            setStatusButton()
+            handleViewModel.handleLayoutPlay(ACTION_START)
         }
 
     }
@@ -520,13 +564,13 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        var intentfilter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
-        registerReceiver(networkBroadcast, intentfilter)
+//        var intentfilter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+//        registerReceiver(networkBroadcast, intentfilter)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
-        unregisterReceiver(networkBroadcast)
+//        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
+//        unregisterReceiver(networkBroadcast)
     }
 }

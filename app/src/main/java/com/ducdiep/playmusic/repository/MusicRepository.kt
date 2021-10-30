@@ -210,6 +210,10 @@ class MusicRepository {
 
             })
     }
+    fun getFavouriteSong(context: Context):List<SongFavourite>{
+        var sqlHelper = SqlHelper(context)
+        return sqlHelper.getAllSong()
+    }
 
 
     companion object {
