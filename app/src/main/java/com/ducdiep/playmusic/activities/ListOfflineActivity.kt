@@ -41,9 +41,6 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class ListOfflineActivity : AppCompatActivity() {
-    //    lateinit var mSongOffline: SongOffline
-//    lateinit var mSongOnline: Song
-//    lateinit var mSongFavourite: SongFavourite
     lateinit var glide: RequestManager
     lateinit var songOfflineAdapter: SongOfflineAdapter
     lateinit var viewModel: ListOfflineViewModel
@@ -56,14 +53,6 @@ class ListOfflineActivity : AppCompatActivity() {
             }
         }
 
-    //    var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-//        override fun onReceive(context: Context, intent: Intent) {
-//            var bundle = intent.extras
-//            if (bundle == null) return
-//            var action = bundle.getInt(ACTION)
-//            handleLayoutPlay(action)
-//        }
-//    }
     var handler = Handler()
     var runSearch = Runnable {
         var s = edt_search.text
@@ -147,14 +136,6 @@ class ListOfflineActivity : AppCompatActivity() {
         AppPreferences.init(this)
         supportActionBar?.hide()
         glide = Glide.with(this)
-//        LocalBroadcastManager.getInstance(this)
-//            .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
-
-//        setupAdapter()
-
-//        if (AppPreferences.indexPlaying != -1) {
-//            handleLayoutPlay(ACTION_START)
-//        }
     }
 
     private fun showMusicOffline(t: SongOffline?) {
@@ -198,12 +179,6 @@ class ListOfflineActivity : AppCompatActivity() {
         }
     }
 
-//    fun sendActionToService(action: Int) {
-//        var intent = Intent(this, MusicService::class.java)
-//        intent.putExtra(ACTION_TO_SERVICE, action)
-//        startService(intent)
-//    }
-
     fun setupSearchAdapter(listTemp: ArrayList<SongOffline>) {
         songOfflineAdapter = SongOfflineAdapter(this@ListOfflineActivity, listTemp)
         songOfflineAdapter.setOnClickItem {
@@ -232,77 +207,6 @@ class ListOfflineActivity : AppCompatActivity() {
         rcv_songs.adapter = songOfflineAdapter
     }
 
-
-
-//    private fun handleLayoutPlay(action: Int) {
-//        when (action) {
-//            ACTION_START -> {
-//                layout_playing.visibility = View.VISIBLE
-//                showDetailMusic()
-//                setStatusButton()
-//            }
-//            ACTION_PAUSE -> setStatusButton()
-//            ACTION_RESUME -> setStatusButton()
-//            ACTION_CLEAR -> {
-//                layout_playing.visibility = View.GONE
-//                reloadData()
-//            }
-//            ACTION_NEXT -> showDetailMusic()
-//            ACTION_PREVIOUS -> showDetailMusic()
-//        }
-//    }
-
-//    fun showDetailMusic() {
-//        if (AppPreferences.isPlayFavouriteList) {
-//            mSongFavourite = MyApplication.listSongFavourite[AppPreferences.indexPlaying]
-//            if (mSongFavourite.url == "") {
-//                var linkImage = mSongFavourite.thumbnail
-//                glide.load(linkImage).into(img_song)
-//                tv_name.text = mSongFavourite.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongFavourite.artists_names
-//                tv_single.isSelected = true
-//            } else {
-//                img_song.setImageBitmap(
-//                    BitmapFactory.decodeResource(
-//                        resources,
-//                        R.drawable.musical_default
-//                    )
-//                )
-//                tv_name.text = mSongFavourite.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongFavourite.artists_names
-//                tv_single.isSelected = true
-//                tv_single.isFocusable = true
-//            }
-//        } else {
-//            if (AppPreferences.isOnline) {
-//                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-//                var linkImage = mSongOnline.thumbnail
-//                glide.load(linkImage).into(img_song)
-//                tv_name.text = mSongOnline.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongOnline.artists_names
-//                tv_single.isSelected = true
-//            } else {
-//                mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-//                img_song.setImageBitmap(mSongOffline.imageBitmap)
-//                tv_name.text = mSongOffline.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongOffline.artist
-//                tv_single.isSelected = true
-//                tv_single.isFocusable = true
-//            }
-//        }
-//    }
-
-//    fun setStatusButton() {
-//        if (AppPreferences.isPlaying) {
-//            btn_play_or_pause.setImageResource(R.drawable.pause)
-//        } else {
-//            btn_play_or_pause.setImageResource(R.drawable.play)
-//        }
-//    }
 
     //create popup
     private fun showPopup(view: View) {
@@ -346,13 +250,6 @@ class ListOfflineActivity : AppCompatActivity() {
                 }
             }
             "en" -> {
-//                textToSpeech = TextToSpeech(this@MainActivity) { status: Int ->
-//                    if (status != TextToSpeech.ERROR) {
-//                        textToSpeech.language = Locale(s)
-//                    } else {
-//                        Toast.makeText(this@MainActivity, "Error when use this function", Toast.LENGTH_SHORT).show()
-//                    }
-//                }
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                 intent.putExtra(
                     RecognizerIntent.EXTRA_LANGUAGE_MODEL,
@@ -372,16 +269,6 @@ class ListOfflineActivity : AppCompatActivity() {
             }
         }
 
-    }
-
-    override fun onResume() {
-        super.onResume()
-//        setStatusButton()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-//        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
     }
 
 }

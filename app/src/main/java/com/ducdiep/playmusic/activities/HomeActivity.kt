@@ -66,35 +66,7 @@ class HomeActivity : AppCompatActivity() {
 
     lateinit var handleViewModel: HandleViewModel
     lateinit var homeViewModel: HomeViewModel
-
-    //    var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-//        override fun onReceive(context: Context, intent: Intent) {
-//            var bundle = intent.extras
-//            if (bundle == null) return
-//            var action = bundle.getInt(ACTION)
-//            handleLayoutPlay(action)
-//        }
-//    }
-//    var networkBroadcast: BroadcastReceiver = object : BroadcastReceiver() {
-//        override fun onReceive(context: Context?, intent: Intent?) {
-//            if (ConnectivityManager.CONNECTIVITY_ACTION == intent?.action) {
-//                if (isNetworkAvailable(context!!)) {
-//                    loadData()
-//                } else {
-//                    loadData()
-//                }
-//            }
-//        }
-//
-//    }
-
-    //    lateinit var mSongOffline: SongOffline
-//    lateinit var mSongOnline: Song
-//    lateinit var mSongFavourite: SongFavourite
     lateinit var glide: RequestManager
-
-    //    lateinit var songService: SongService
-//    lateinit var songServiceSearch: SongService
     lateinit var listTopSong: List<Song>
     lateinit var listSearch: List<SongSearch>
     private val searcByvoice =
@@ -126,7 +98,6 @@ class HomeActivity : AppCompatActivity() {
         setContentView(R.layout.activity_home)
         init()
         setClick()
-
     }
 
     private fun setClick() {
@@ -205,8 +176,6 @@ class HomeActivity : AppCompatActivity() {
             layout_slide.visibility = View.VISIBLE
             layout_title_top_song.visibility = View.VISIBLE
             rcv_top_songs.visibility = View.VISIBLE
-//            songService = RetrofitInstance.getInstance()!!
-//            songServiceSearch = RetrofitInstance.getInstanceSearch()!!
             getTopSong()
         } else {
             layout_search.visibility = View.GONE
@@ -234,10 +203,10 @@ class HomeActivity : AppCompatActivity() {
             setupTopSongAdapter()
         })
 
-        homeViewModel.dataLoading.observe(this,{t->
-            if (t==true){
+        homeViewModel.dataLoading.observe(this, { t ->
+            if (t == true) {
                 progressbar_search.visibility = View.VISIBLE
-            }else{
+            } else {
                 progressbar_search.visibility = View.GONE
             }
         })
@@ -267,8 +236,6 @@ class HomeActivity : AppCompatActivity() {
         AppPreferences.init(this)
         glide = Glide.with(this)
 
-//        LocalBroadcastManager.getInstance(this)
-//            .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
     }
 
     private fun showMusicOffline(t: SongOffline?) {
@@ -311,76 +278,6 @@ class HomeActivity : AppCompatActivity() {
             tv_single.isFocusable = true
         }
     }
-
-//    private fun handleLayoutPlay(action: Int) {
-//        when (action) {
-//            ACTION_START -> {
-//                layout_playing.visibility = View.VISIBLE
-//                showDetailMusic()
-//                setStatusButton()
-//            }
-//            ACTION_PAUSE -> setStatusButton()
-//            ACTION_RESUME -> setStatusButton()
-//            ACTION_CLEAR -> {
-//                layout_playing.visibility = View.GONE
-//                reloadData()
-//            }
-//            ACTION_NEXT -> showDetailMusic()
-//            ACTION_PREVIOUS -> showDetailMusic()
-//        }
-//    }
-
-//    fun setStatusButton() {
-//        if (AppPreferences.isPlaying) {
-//            btn_play_or_pause.setImageResource(R.drawable.pause)
-//        } else {
-//            btn_play_or_pause.setImageResource(R.drawable.play)
-//        }
-//    }
-
-//    fun showDetailMusic() {
-//        if (AppPreferences.isPlayFavouriteList) {
-//            mSongFavourite = listSongFavourite[AppPreferences.indexPlaying]
-//            if (mSongFavourite.url == "") {
-//                var linkImage = mSongFavourite.thumbnail
-//                glide.load(linkImage).into(img_song)
-//                tv_name.text = mSongFavourite.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongFavourite.artists_names
-//                tv_single.isSelected = true
-//            } else {
-//                img_song.setImageBitmap(
-//                    BitmapFactory.decodeResource(
-//                        resources,
-//                        R.drawable.musical_default
-//                    )
-//                )
-//                tv_name.text = mSongFavourite.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongFavourite.artists_names
-//                tv_single.isSelected = true
-//                tv_single.isFocusable = true
-//            }
-//        } else {
-//            if (AppPreferences.isOnline) {
-//                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-//                var linkImage = mSongOnline.thumbnail
-//                glide.load(linkImage).into(img_song)
-//                tv_name.text = mSongOnline.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongOnline.artists_names
-//                tv_single.isSelected = true
-//            } else {
-//                mSongOffline = listSongOffline[AppPreferences.indexPlaying]
-//                img_song.setImageBitmap(mSongOffline.imageBitmap)
-//                tv_name.text = mSongOffline.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongOffline.artist
-//                tv_single.isSelected = true
-//                tv_single.isFocusable = true
-//            }
-//        }
-//    }
 
     //create popup
     private fun showPopup(view: View) {
@@ -519,13 +416,6 @@ class HomeActivity : AppCompatActivity() {
         rcv_search.adapter = songAdapter
     }
 
-//    fun sendActionToService(action: Int) {
-//        var intent = Intent(this, MusicService::class.java)
-//        intent.putExtra(ACTION_TO_SERVICE, action)
-//        startService(intent)
-//    }
-
-
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(runSlide)
@@ -559,18 +449,5 @@ class HomeActivity : AppCompatActivity() {
                 ) { dialog, which -> }
                 .show()
         }
-    }
-
-
-    override fun onStart() {
-        super.onStart()
-//        var intentfilter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
-//        registerReceiver(networkBroadcast, intentfilter)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-//        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
-//        unregisterReceiver(networkBroadcast)
     }
 }

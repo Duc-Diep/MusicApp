@@ -47,6 +47,7 @@ class PlayViewModel(application: Application) : AndroidViewModel(application) {
     var currentPosition = MutableLiveData<Int>()
     var dataLoading = MutableLiveData<Boolean>()
     var isFavourite = MutableLiveData<Boolean>()
+    var isDestroy = MutableLiveData<Boolean>().apply { value = false }
     var isPrevious = false
 
     //bound service
@@ -54,12 +55,10 @@ class PlayViewModel(application: Application) : AndroidViewModel(application) {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
             val binder = service as MusicService.MusicBinder
             mService = binder.getService()
-//            setProgress()
             mBound.value = true
         }
 
         override fun onServiceDisconnected(arg0: ComponentName) {
-//            handler.removeCallbacks(runnable)
             mBound.value = false
         }
     }
@@ -70,7 +69,6 @@ class PlayViewModel(application: Application) : AndroidViewModel(application) {
             var bundle = intent.extras
             if (bundle == null) return
             var action = bundle.getInt(ACTION)
-//            currentPos = bundle.getInt(CURRENT_POSITION)
             handleLayoutPlay(action)
         }
     }
@@ -130,7 +128,6 @@ class PlayViewModel(application: Application) : AndroidViewModel(application) {
             ACTION_START -> {
                 getMusic()
                 setStatusButton()
-//                if (mBound.value==true) {
                 getProgress()
             }
             ACTION_PAUSE -> {
@@ -143,16 +140,15 @@ class PlayViewModel(application: Application) : AndroidViewModel(application) {
             }
             ACTION_NEXT -> {
                 currentPosition.value = 0
-//                setupRecommendSong()
             }
             ACTION_PREVIOUS -> {
                 isPrevious = true
                 currentPosition.value = 0
-//                setupRecommendSong()
             }
             ACTION_CLEAR -> {
                 clearProgress()
                 reloadData()
+                isDestroy.value = true
             }
 
         }
@@ -255,7 +251,6 @@ class PlayViewModel(application: Application) : AndroidViewModel(application) {
                 Log.d("hihi", "run: ${currentPosition.value}")
                 handler!!.postDelayed(this, 1000)
             } catch (ex: Exception) {
-//                Log.d("hihi", "run: ${ex.message}")
             }
         }
     }

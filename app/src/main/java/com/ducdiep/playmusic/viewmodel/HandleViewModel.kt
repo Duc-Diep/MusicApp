@@ -57,7 +57,6 @@ open class HandleViewModel(application: Application) : AndroidViewModel(applicat
         when (action) {
             ACTION_START -> {
                 isVisibleLayout.value = true
-//                layout_playing.visibility = View.VISIBLE
                 getMusic()
                 setStatusButton()
             }
@@ -65,7 +64,6 @@ open class HandleViewModel(application: Application) : AndroidViewModel(applicat
             ACTION_RESUME -> setStatusButton()
             ACTION_CLEAR -> {
                 isVisibleLayout.value = false
-//                layout_playing.visibility = View.GONE
                 reloadData()
             }
             ACTION_NEXT -> getMusic()

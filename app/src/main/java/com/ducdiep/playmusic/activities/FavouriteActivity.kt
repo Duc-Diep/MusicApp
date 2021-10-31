@@ -43,17 +43,6 @@ import kotlinx.android.synthetic.main.activity_favourite.tv_single
 
 class FavouriteActivity : AppCompatActivity() {
 
-    //    var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-//        override fun onReceive(context: Context, intent: Intent) {
-//            var bundle = intent.extras
-//            if (bundle == null) return
-//            var action = bundle.getInt(ACTION)
-//            handleLayoutPlay(action)
-//        }
-//    }
-//    lateinit var mSongOffline: SongOffline
-//    lateinit var mSongOnline: Song
-//    lateinit var mSongFavourite: SongFavourite
     lateinit var handleViewModel: HandleViewModel
     lateinit var favouriteViewModel: FavouriteViewModel
     lateinit var glide: RequestManager
@@ -64,9 +53,11 @@ class FavouriteActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_favourite)
         supportActionBar?.hide()
-//        LocalBroadcastManager.getInstance(this)
-//            .registerReceiver(broadcastReceiver, IntentFilter(ACTION_SEND_TO_ACTIVITY))
         init()
+        setClick()
+    }
+
+    private fun setClick() {
         btn_play_list.setOnClickListener {
             listSongFavourite.clear()
             listSongFavourite.addAll(listSong)
@@ -189,88 +180,5 @@ class FavouriteActivity : AppCompatActivity() {
             tv_single.isSelected = true
             tv_single.isFocusable = true
         }
-    }
-
-//    fun sendActionToService(action: Int) {
-//        var intent = Intent(this, MusicService::class.java)
-//        intent.putExtra(ACTION_TO_SERVICE, action)
-//        startService(intent)
-//    }
-
-//    private fun handleLayoutPlay(action: Int) {
-//        when (action) {
-//            ACTION_START -> {
-//                layout_playing.visibility = View.VISIBLE
-//                showDetailMusic()
-//                setStatusButton()
-//            }
-//            ACTION_PAUSE -> setStatusButton()
-//            ACTION_RESUME -> setStatusButton()
-//            ACTION_CLEAR -> {
-//                layout_playing.visibility = View.GONE
-//                reloadData()
-//            }
-//            ACTION_NEXT -> showDetailMusic()
-//            ACTION_PREVIOUS -> showDetailMusic()
-//        }
-//    }
-
-//    fun showDetailMusic() {
-//        if (AppPreferences.isPlayFavouriteList) {
-//            mSongFavourite = listSongFavourite[AppPreferences.indexPlaying]
-//            if (mSongFavourite.url == "") {
-//                var linkImage = mSongFavourite.thumbnail
-//                glide.load(linkImage).into(img_song)
-//                tv_name.text = mSongFavourite.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongFavourite.artists_names
-//                tv_single.isSelected = true
-//            } else {
-//                img_song.setImageBitmap(
-//                    BitmapFactory.decodeResource(
-//                        resources,
-//                        R.drawable.musical_default
-//                    )
-//                )
-//                tv_name.text = mSongFavourite.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongFavourite.artists_names
-//                tv_single.isSelected = true
-//                tv_single.isFocusable = true
-//            }
-//        } else {
-//            if (AppPreferences.isOnline) {
-//                mSongOnline = listSongOnline[AppPreferences.indexPlaying]
-//                var linkImage = mSongOnline.thumbnail
-//                glide.load(linkImage).into(img_song)
-//                tv_name.text = mSongOnline.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongOnline.artists_names
-//                tv_single.isSelected = true
-//            } else {
-//                mSongOffline = MyApplication.listSongOffline[AppPreferences.indexPlaying]
-//                img_song.setImageBitmap(mSongOffline.imageBitmap)
-//                tv_name.text = mSongOffline.name
-//                tv_name.isSelected = true
-//                tv_single.text = mSongOffline.artist
-//                tv_single.isSelected = true
-//                tv_single.isFocusable = true
-//            }
-//        }
-//
-//
-//    }
-//
-//    fun setStatusButton() {
-//        if (AppPreferences.isPlaying) {
-//            btn_play_or_pause.setImageResource(R.drawable.pause)
-//        } else {
-//            btn_play_or_pause.setImageResource(R.drawable.play)
-//        }
-//    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-//        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
     }
 }
